@@ -1,8 +1,18 @@
+// Load environment variables from .env file in development
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 const express = require('express');
 const { exec } = require('child_process');
 const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Check for API key at startup
+if (!process.env.CLAUDE_API_KEY) {
+  console.warn("Warning: CLAUDE_API_KEY environment variable is not set. API calls may fail.");
+}
 
 // Enable CORS for all routes
 app.use(cors());
@@ -25,10 +35,21 @@ app.post('/analyze', (req, res) => {
     return res.status(400).json({ error: 'Ticker symbol is required' });
   }
   
+  // Check API key before executing script
+  if (!process.env.CLAUDE_API_KEY) {
+    return res.status(500).json({ error: 'API key not configured on server' });
+  }
+  
   console.log(`Analyzing ticker: ${ticker}`);
   
-  // Execute MarketMirror.sh with the provided ticker
-  exec(`./MarketMirror.sh ${ticker}`, { timeout: 50000 }, (error, stdout, stderr) => {
+  // Execute MarketMirror.sh with the provided ticker and pass environment variables
+  exec(`./MarketMirror.sh ${ticker}`, { 
+    timeout: 50000,
+    env: {
+      ...process.env,
+      CLAUDE_API_KEY: process.env.CLAUDE_API_KEY
+    }
+  }, (error, stdout, stderr) => {
     if (error) {
       console.error(`Error executing script: ${error.message}`);
       return res.status(500).json({ error: error.message });
@@ -49,7 +70,14 @@ app.post('/analyze', (req, res) => {
   });
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'An unexpected error occurred' });
+});
+
 // Start the server
 app.listen(port, () => {
   console.log(`MarketMirror API running on port ${port}`);
+  console.log(`API key configured: ${process.env.CLAUDE_API_KEY ? 'Yes' : 'No'}`);
 });

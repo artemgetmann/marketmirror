@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Your API key - use the one that worked in the debug script
-API_KEY="REDACTED_ANTHROPIC_KEY"
+API_KEY="${CLAUDE_API_KEY}"
 ENDPOINT="https://api.anthropic.com/v1/messages"
 
 # Check if ticker was provided
