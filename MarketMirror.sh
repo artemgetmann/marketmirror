@@ -153,13 +153,17 @@ Merge all findings into one cohesive, updated report and revise the final recomm
 }
 EOF
 
-# Make the second API call
-echo "Conducting deeper research and analysis..."
-second_response=$(curl -s "$ENDPOINT" \
-  -H "x-api-key: $API_KEY" \
-  -H "anthropic-version: 2023-06-01" \
-  -H "content-type: application/json" \
-  -d @payload_followup.json)
+# # Make the second API call
+# echo "Conducting deeper research and analysis..."
+# second_response=$(curl -s "$ENDPOINT" \
+#   -H "x-api-key: $API_KEY" \
+#   -H "anthropic-version: 2023-06-01" \
+#   -H "content-type: application/json" \
+#   -d @payload_followup.json)
+
+# After the second API call, add this line:
+echo "DEBUG: Error in second API call:"
+echo "$second_response" | jq '.error' || echo "No error field"
 
 # Debug output for second response
 echo "DEBUG: Second API Response structure:"
@@ -171,6 +175,9 @@ echo "$second_response" | jq '.content[0]' || echo "Failed to access first conte
 
 # Extract the final analysis using appropriate jq logic based on the API response
 final_analysis=$(echo "$second_response" | jq -r '.content[0].text // "Error extracting content"')
+
+# Temporarily use just the first analysis
+final_analysis="$first_analysis"
 
 # Print only the final analysis
 echo "========== COMPREHENSIVE FINANCIAL ANALYSIS OF $TICKER =========="
