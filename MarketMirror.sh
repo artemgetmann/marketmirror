@@ -112,15 +112,9 @@ first_analysis=$(echo "$api_response" | jq -r '.content[0].text // "Error extrac
 echo "Initial analysis complete. Performing deeper research..."
 
 # Create second prompt with follow-up research request
-cat > payload_followup.json << EOF
-{
-  "model": "claude-3-7-sonnet-20250219",
-  "max_tokens": 4000,
-  "temperature": 0.5,
-  "messages": [
-    {
-      "role": "user",
-      "content": "You are a financial analyst. We previously analyzed ${TICKER} and generated this report:
+# Use jq to properly escape the first_analysis JSON for the second API call
+followup_content=$(cat <<EOF
+You are a financial analyst. We previously analyzed ${TICKER} and generated this report:
 
 ---
 ${first_analysis}
@@ -147,13 +141,29 @@ Now find me:
 * Cash-flow might be worth giving a glance
 * Maybe look into the P/FCF Ratio and DCF
 
-Merge all findings into one cohesive, updated report and revise the final recommendation accordingly."
+Merge all findings into one cohesive, updated report and revise the final recommendation accordingly.
+EOF
+)
+
+# Use jq to properly escape the content for JSON
+escaped_followup_content=$(echo "$followup_content" | jq -Rs .)
+
+# Create the properly escaped JSON payload file
+cat > payload_followup.json << EOF
+{
+  "model": "claude-3-7-sonnet-20250219",
+  "max_tokens": 4000,
+  "temperature": 0.5,
+  "messages": [
+    {
+      "role": "user",
+      "content": ${escaped_followup_content}
     }
   ]
 }
 EOF
 
-# Make the second API call - uncommented this section
+# Make the second API call
 echo "Conducting deeper research and analysis..."
 second_response=$(curl -s "$ENDPOINT" \
   -H "x-api-key: $API_KEY" \
