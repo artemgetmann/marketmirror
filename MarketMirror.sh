@@ -153,21 +153,19 @@ Merge all findings into one cohesive, updated report and revise the final recomm
 }
 EOF
 
-# # Make the second API call
-# echo "Conducting deeper research and analysis..."
-# second_response=$(curl -s "$ENDPOINT" \
-#   -H "x-api-key: $API_KEY" \
-#   -H "anthropic-version: 2023-06-01" \
-#   -H "content-type: application/json" \
-#   -d @payload_followup.json)
-
-# After the second API call, add this line:
-echo "DEBUG: Error in second API call:"
-echo "$second_response" | jq '.error' || echo "No error field"
+# Make the second API call - uncommented this section
+echo "Conducting deeper research and analysis..."
+second_response=$(curl -s "$ENDPOINT" \
+  -H "x-api-key: $API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "content-type: application/json" \
+  -d @payload_followup.json)
 
 # Debug output for second response
 echo "DEBUG: Second API Response structure:"
 echo "$second_response" | jq 'keys' || echo "Failed to parse second API response"
+echo "DEBUG: Error in second API call:"
+echo "$second_response" | jq '.error' || echo "No error field"
 echo "DEBUG: Second response content field structure:"
 echo "$second_response" | jq '.content | if type == "array" then "Array of \(length) items" else type end' || echo "No .content field or not parsable"
 echo "DEBUG: Trying to view first content item in second response:"
@@ -176,8 +174,11 @@ echo "$second_response" | jq '.content[0]' || echo "Failed to access first conte
 # Extract the final analysis using appropriate jq logic based on the API response
 final_analysis=$(echo "$second_response" | jq -r '.content[0].text // "Error extracting content"')
 
-# Temporarily use just the first analysis
-final_analysis="$first_analysis"
+# If there's an error with the second API call, fall back to the first analysis
+if [[ "$final_analysis" == "Error extracting content" ]]; then
+  echo "WARNING: Could not extract final analysis from second API call. Using initial analysis instead."
+  final_analysis="$first_analysis"
+fi
 
 # Print only the final analysis
 echo "========== COMPREHENSIVE FINANCIAL ANALYSIS OF $TICKER =========="
