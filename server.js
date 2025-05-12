@@ -70,6 +70,68 @@ app.post('/analyze', (req, res) => {
   });
 });
 
+// API Key check endpoint
+app.get('/check-api-key', (req, res) => {
+  if (process.env.CLAUDE_API_KEY) {
+    // Only show the first few characters for security
+    const maskedKey = process.env.CLAUDE_API_KEY.substring(0, 6) + '...' + 
+                      process.env.CLAUDE_API_KEY.substring(process.env.CLAUDE_API_KEY.length - 4);
+    res.json({ 
+      apiKeyConfigured: true, 
+      keyPreview: maskedKey,
+      keyLength: process.env.CLAUDE_API_KEY.length
+    });
+  } else {
+    res.json({ apiKeyConfigured: false });
+  }
+});
+
+// JQ check endpoint
+app.get('/check-jq', (req, res) => {
+  exec('which jq', (error, stdout, stderr) => {
+    if (error) {
+      return res.json({ jqInstalled: false, error: error.message });
+    }
+    
+    if (stderr) {
+      return res.json({ jqInstalled: false, error: stderr });
+    }
+    
+    return res.json({ jqInstalled: true, path: stdout.trim() });
+  });
+});
+
+// Script permissions check endpoint
+app.get('/check-script', (req, res) => {
+  exec('ls -la ./MarketMirror.sh', (error, stdout, stderr) => {
+    if (error) {
+      return res.json({ scriptExists: false, error: error.message });
+    }
+    
+    if (stderr) {
+      return res.json({ scriptExists: false, error: stderr });
+    }
+    
+    // Try to make it executable if it isn't already
+    exec('chmod +x ./MarketMirror.sh', (chmodError) => {
+      if (chmodError) {
+        return res.json({ 
+          scriptExists: true, 
+          details: stdout.trim(),
+          executable: false,
+          chmodError: chmodError.message
+        });
+      }
+      
+      return res.json({ 
+        scriptExists: true, 
+        details: stdout.trim(),
+        executable: true
+      });
+    });
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
