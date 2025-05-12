@@ -1,23 +1,11 @@
 #!/usr/bin/env bash
+# Exit on error but don't display commands
+set -eo pipefail
 
-# Print each command for debugging
-set -x
-
-# Exit on any error with error message
-trap 'echo "ERROR: Command failed with exit code $? at line $LINENO"' ERR
-
-# Check for jq
+# Check for dependencies
 if ! command -v jq &> /dev/null; then
-    echo "jq is not installed or not in PATH. Attempting to find it..."
-    # Try to find jq in common locations
-    JQ_PATH=$(find /usr /bin /usr/local -name "jq" -type f 2>/dev/null | head -n 1)
-    if [ -n "$JQ_PATH" ]; then
-        echo "Found jq at $JQ_PATH, using that."
-        alias jq="$JQ_PATH"
-    else
-        echo "ERROR: jq command not found. Please install jq."
-        exit 1
-    fi
+    echo "ERROR: jq is required but not found in PATH. Please install jq."
+    exit 1
 fi
 
 # Your API key - use the one that worked in the debug script
@@ -41,17 +29,12 @@ echo "Fetching data from Finviz..."
 
 # Fetch the page
 URL="https://finviz.com/quote.ashx?t=${TICKER}&p=d"
-echo "Fetching data from URL: $URL"
 raw=$(curl -s -A 'Mozilla/5.0' "$URL")
 
 if [ -z "$raw" ]; then
     echo "ERROR: Failed to fetch data from Finviz or received empty response."
-    echo "Attempting to fetch with additional debug information..."
-    curl -v -A 'Mozilla/5.0' "$URL"
     exit 1
 fi
-
-echo "Successfully fetched data. Extracting metrics..."
 
 # Extract metrics with error checking
 function extract_metric() {
@@ -79,31 +62,13 @@ sales=$(extract_metric 's/.*>Sales past 5Y<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+
 cr=$(extract_metric 's/.*>Current Ratio<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' "N/A")
 de=$(extract_metric 's/.*>Debt\/Eq<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' "N/A")
 insider=$(extract_metric 's/.*>Insider Own<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' "N/A")
-div_ttm=$(extract_metric '/Dividend TTM/ s/.*<b>([^<]+)<\/b>.*/\1/p' "N/A")
+div_ttm=$(extract_metric '/Dividend TTM/ s/.*<b>([^<]+)<\/b>.*/\1/p' "No Dividend")
 mcap=$(extract_metric 's/.*>Market Cap<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?[BM]).*/\1/p' "N/A")
 option_short=$(extract_metric '/Option\/Short/ s/.*<b>([^<]+)<\/b>.*/\1/p' "N/A")
 insider_trans=$(extract_metric 's/.*>Insider Trans<\/td>[^>]*>[^-0-9]*(-?[0-9]+(\.[0-9]+)?%).*/\1/p' "N/A")
 
-echo "Extracted metrics:"
-echo "P/E: $pe"
-echo "P/S: $ps"
-echo "PEG: $peg"
-echo "P/FCF: $pfcf"
-echo "P/B: $pb"
-echo "ROE: $roe"
-echo "ROA: $roa"
-echo "Profit Margin: $pm"
-echo "Sales Growth: $sales"
-echo "Current Ratio: $cr"
-echo "Debt/Equity: $de"
-echo "Insider Ownership: $insider"
-echo "Dividend TTM: $div_ttm"
-echo "Market Cap: $mcap"
-echo "Option/Short: $option_short"
-echo "Insider Transactions: $insider_trans"
-
 echo "Data retrieved successfully!"
-echo "Generating comprehensive analysis..."
+echo "Generating analysis..."
 
 # Write payload to a file to avoid any shell escaping issues
 cat > payload.json << EOF
@@ -156,54 +121,34 @@ Format your response in markdown for readability."
 }
 EOF
 
-echo "Payload created. File size: $(wc -c < payload.json) bytes"
-echo "First few lines of payload:"
-head -n 10 payload.json
-
 # Make the API call
-echo "Making API call to Claude..."
-api_response=$(curl -v "$ENDPOINT" \
+echo "Analyzing financial data with Claude..."
+api_response=$(curl -s "$ENDPOINT" \
   -H "x-api-key: $API_KEY" \
   -H "anthropic-version: 2023-06-01" \
   -H "content-type: application/json" \
-  -d @payload.json 2>&1)
+  -d @payload.json)
 
-echo "API call completed. Response size: ${#api_response} characters"
+# Extract analysis text from response
+analysis=$(echo "$api_response" | grep -o '"text": ".*"' | sed 's/"text": "\(.*\)"/\1/' | sed 's/\\"/"/g' | sed 's/\\n/\n/g')
 
-# Check if the response is valid JSON
-if ! echo "$api_response" | grep -q "content"; then
-    echo "ERROR: API response does not contain expected content field:"
-    echo "$api_response"
-    # Just use a placeholder for the analysis to continue with the script
-    first_analysis="# Error: Could not retrieve analysis for $TICKER"
-else
-    # Extract the initial analysis 
-    first_analysis=$(echo "$api_response" | grep -o '"text": "[^"]*"' | sed 's/"text": "\(.*\)"/\1/' | sed 's/\\"/"/g')
-    
-    if [ -z "$first_analysis" ]; then
-        echo "ERROR: Failed to extract analysis from API response."
-        echo "Raw response:"
-        echo "$api_response"
-        first_analysis="# Error: Could not extract analysis for $TICKER"
-    else
-        echo "Successfully extracted analysis."
-    fi
+# If analysis extraction failed, try with jq if available
+if [ -z "$analysis" ]; then
+  echo "Extracting analysis with alternative method..."
+  analysis=$(echo "$api_response" | jq -r '.content[0].text // "Error: Could not extract analysis"')
 fi
 
-echo "Initial analysis complete. Length: ${#first_analysis} characters"
-echo "First 100 characters of analysis:"
-echo "${first_analysis:0:100}..."
+# Verify we got something
+if [ -z "$analysis" ] || [ "$analysis" = "Error: Could not extract analysis" ]; then
+  echo "ERROR: Failed to extract analysis from API response."
+  exit 1
+fi
 
-# Don't attempt the second API call for now, just use the first analysis
-final_analysis="$first_analysis"
-
-# Print only the final analysis
+# Print the final analysis
 echo "========== COMPREHENSIVE FINANCIAL ANALYSIS OF $TICKER =========="
-echo "$final_analysis"
+echo "$analysis"
 
 # Save to file
-echo "$final_analysis" > "${TICKER}_comprehensive_analysis_$(date +%Y%m%d).md"
+echo "$analysis" > "${TICKER}_comprehensive_analysis_$(date +%Y%m%d).md"
 echo ""
 echo "Comprehensive analysis saved to ${TICKER}_comprehensive_analysis_$(date +%Y%m%d).md"
-
-echo "Script completed successfully!"
