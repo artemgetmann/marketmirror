@@ -61,11 +61,13 @@ app.post('/analyze', (req, res) => {
     
     console.log(`Analysis complete for ${ticker}`);
     
-    // Return the analysis as JSON
+    // Return the analysis as JSON with debug info
     return res.json({ 
       success: true,
       ticker: ticker,
-      analysis: stdout
+      analysis: stdout,
+      stderr: stderr || null,
+      apiKeyLength: process.env.CLAUDE_API_KEY ? process.env.CLAUDE_API_KEY.length : 0
     });
   });
 });

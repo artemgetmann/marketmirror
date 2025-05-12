@@ -98,7 +98,15 @@ api_response=$(curl -s "$ENDPOINT" \
   -H "content-type: application/json" \
   -d @payload.json)
 
-# Extract the initial analysis
+# Debug output
+echo "DEBUG: API Response structure:"
+echo "$api_response" | jq 'keys' || echo "Failed to parse API response"
+echo "DEBUG: Content field structure:"
+echo "$api_response" | jq '.content | if type == "array" then "Array of \(length) items" else type end' || echo "No .content field or not parsable"
+echo "DEBUG: Trying to view first content item:"
+echo "$api_response" | jq '.content[0]' || echo "Failed to access first content item"
+
+# Extract the initial analysis using appropriate jq logic based on the API response
 first_analysis=$(echo "$api_response" | jq -r '.content[0].text // "Error extracting content"')
 
 echo "Initial analysis complete. Performing deeper research..."
@@ -153,7 +161,15 @@ second_response=$(curl -s "$ENDPOINT" \
   -H "content-type: application/json" \
   -d @payload_followup.json)
 
-# Extract the final analysis
+# Debug output for second response
+echo "DEBUG: Second API Response structure:"
+echo "$second_response" | jq 'keys' || echo "Failed to parse second API response"
+echo "DEBUG: Second response content field structure:"
+echo "$second_response" | jq '.content | if type == "array" then "Array of \(length) items" else type end' || echo "No .content field or not parsable"
+echo "DEBUG: Trying to view first content item in second response:"
+echo "$second_response" | jq '.content[0]' || echo "Failed to access first content item in second response"
+
+# Extract the final analysis using appropriate jq logic based on the API response
 final_analysis=$(echo "$second_response" | jq -r '.content[0].text // "Error extracting content"')
 
 # Print only the final analysis
