@@ -1,47 +1,51 @@
 
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { AnalysisSection } from "@/components/AnalysisSection";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Logo } from "@/components/Logo";
 
 const Analysis = () => {
   const { ticker } = useParams<{ ticker: string }>();
   const [loading, setLoading] = useState(true);
-  const [analysisData, setAnalysisData] = useState<null | any>(null);
+  const [analysisData, setAnalysisData] = useState<null | { analysis: string }>(null);
   const [followUpQuestion, setFollowUpQuestion] = useState("");
   const [conversation, setConversation] = useState<Array<{ question: string; answer: string }>>([]);
   const { toast } = useToast();
 
-  // In a real app, this would be an API call
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
         setLoading(true);
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
         
-        // Mock data - in a real app, this would come from your API
-        setAnalysisData({
-          companyName: ticker === "AAPL" ? "Apple Inc." : `${ticker} Corporation`,
-          summary: `${ticker} is currently trading at a price that suggests moderate value based on fundamentals. The company has shown consistent revenue growth over the past 5 years, with a compound annual growth rate (CAGR) of approximately 11.2%.`,
-          financials: {
-            revenueGrowth: "11.2% CAGR (5-year)",
-            profitMargin: ticker === "AAPL" ? "25.3%" : "18.4%",
-            peRatio: ticker === "AAPL" ? "28.7" : "22.3",
-            debtToEquity: ticker === "AAPL" ? "1.52" : "0.78",
+        const response = await fetch("https://marketmirror-api.onrender.com/analyze", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-          analysis: `Based on current market conditions and ${ticker}'s financial health, the stock appears to be trading at a ${ticker === "AAPL" ? "premium" : "reasonable"} valuation. The company's strong balance sheet and consistent cash flow generation provide a solid foundation for future growth. However, investors should be aware of potential risks including market volatility, competitive pressures, and regulatory challenges.`,
-          recommendation: ticker === "AAPL" ? "Hold" : "Buy",
+          body: JSON.stringify({ ticker }),
         });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || "Failed to analyze ticker");
+        }
+        
+        setAnalysisData({ analysis: data.analysis });
       } catch (error) {
+        console.error("Analysis error:", error);
         toast({
           title: "Error",
-          description: "Failed to fetch analysis. Please try again.",
+          description: error instanceof Error ? error.message : "Failed to fetch analysis. Please try again.",
           variant: "destructive",
         });
+        setAnalysisData(null);
       } finally {
         setLoading(false);
       }
@@ -56,7 +60,7 @@ const Analysis = () => {
     e.preventDefault();
     if (!followUpQuestion.trim()) return;
 
-    // In a real app, this would be an API call
+    // In a real app, this would be an API call to the follow-up endpoint
     const mockAnswer = `Based on the analysis, ${followUpQuestion.includes("future") ? 
       `${ticker} is expected to continue its growth trajectory, though perhaps at a more moderate pace than previous years.` : 
       `${ticker}'s performance in this area is consistent with industry standards, showing neither significant outperformance nor underperformance.`}`;
@@ -66,7 +70,6 @@ const Analysis = () => {
   };
 
   const handleDownloadPDF = () => {
-    // In a real app, this would generate and download a PDF
     toast({
       title: "PDF Download",
       description: "Your analysis has been downloaded as a PDF.",
@@ -76,8 +79,8 @@ const Analysis = () => {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <header className="w-full max-w-3xl mx-auto pt-8 px-4 md:px-0 flex justify-between items-center">
-        <Link to="/" className="text-black hover:text-gray-700">
-          <h1 className="text-2xl font-medium">MarketMirror</h1>
+        <Link to="/" className="text-black hover:text-gray-700 flex items-center">
+          <Logo />
         </Link>
         {!loading && analysisData && (
           <Button 
@@ -92,61 +95,35 @@ const Analysis = () => {
 
       <main className="w-full max-w-3xl mx-auto px-4 md:px-0 py-12 flex-1">
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-64">
-            <p className="text-gray-500">Analyzing {ticker}...</p>
+          <div className="space-y-8">
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-1/2" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+            
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-1/4" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+            
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-1/4" />
+              <Skeleton className="h-20 w-full" />
+            </div>
           </div>
         ) : analysisData ? (
-          <div className="space-y-12">
+          <div className="space-y-8">
             <div className="space-y-4">
-              <h1 className="text-4xl font-medium">{analysisData.companyName} ({ticker})</h1>
-              <p className="text-xl text-gray-700">{analysisData.summary}</p>
+              <h1 className="text-4xl font-medium">{ticker}</h1>
+              <p className="text-xl text-gray-700">Comprehensive Financial Analysis</p>
             </div>
 
-            <AnalysisSection 
-              title="Financial Overview"
-              content={
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-gray-500">Revenue Growth</p>
-                    <p className="text-xl">{analysisData.financials.revenueGrowth}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-gray-500">Profit Margin</p>
-                    <p className="text-xl">{analysisData.financials.profitMargin}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-gray-500">P/E Ratio</p>
-                    <p className="text-xl">{analysisData.financials.peRatio}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-gray-500">Debt to Equity</p>
-                    <p className="text-xl">{analysisData.financials.debtToEquity}</p>
-                  </div>
-                </div>
-              }
-            />
-
-            <AnalysisSection 
-              title="Market Analysis"
-              content={<p className="text-lg leading-relaxed">{analysisData.analysis}</p>}
-            />
-
-            <AnalysisSection 
-              title="Recommendation"
-              content={
-                <div className="py-4">
-                  <span className={`text-xl font-medium px-4 py-2 rounded-full ${
-                    analysisData.recommendation === "Buy" 
-                      ? "bg-gray-100" 
-                      : analysisData.recommendation === "Sell" 
-                        ? "bg-gray-100" 
-                        : "bg-gray-100"
-                  }`}>
-                    {analysisData.recommendation}
-                  </span>
-                </div>
-              }
-            />
+            <div className="prose prose-slate max-w-none">
+              <ReactMarkdown>{analysisData.analysis}</ReactMarkdown>
+            </div>
 
             {conversation.length > 0 && (
               <AnalysisSection 
