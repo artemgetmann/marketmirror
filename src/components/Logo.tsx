@@ -3,13 +3,13 @@ import React from "react";
 
 export const Logo: React.FC = () => {
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex items-center">
       <img 
-        src="/lovable-uploads/3405e09c-d358-44b5-a1dc-8ce20c9c6819.png" 
+        src="/lovable-uploads/37c8b23a-bdfe-4834-ba6e-667514d2a4e1.png" 
         alt="MarketMirror Logo" 
         className="w-10 h-10 mr-3" 
       />
-      <span className="text-2xl font-medium">MarketMirror</span>
+      <span className="text-3xl font-medium">MarketMirror</span>
     </div>
   );
 };
