@@ -22,12 +22,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col px-4 bg-white">
-      <header className="w-full py-6 px-4">
-        <Logo />
-      </header>
-      
       <div className="flex-1 flex flex-col items-center justify-center">
         <div className="w-full max-w-xl text-center space-y-6">
+          <div className="flex justify-center mb-4">
+            <Logo />
+          </div>
           <p className="text-xl text-gray-700">A space for financial clarity</p>
           
           <form onSubmit={handleSubmit} className="mt-12 space-y-6">
