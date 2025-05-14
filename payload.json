@@ -9,11 +9,11 @@
       "content": "As a financial analyst, please provide a comprehensive analysis of AAPL using the following Finviz data:
 
 Valuation & Growth:
-- P/E (TTM): 30.98
-- P/S: 7.41
-- PEG Ratio: 3.71
-- P/FCF: 30.11
-- P/B: 44.40
+- P/E (TTM): 32.64
+- P/S: 7.80
+- PEG Ratio: 3.96
+- P/FCF: 31.72
+- P/B: 46.78
 
 Profitability:
 - ROE: 138.02%
@@ -28,8 +28,8 @@ Liquidity & Leverage:
 Qualitative Factors:
 - Insider Ownership: 0.10%
 - Insider Transactions: -3.19%
-- Dividend TTM: 1.00 (0.50%)
-- Market Cap: 2965.20B
+- Dividend TTM: 1.00 (0.48%)
+- Market Cap: 3123.97B
 - Option/Short: Yes / Yes
 
 Please create a detailed analysis with the following structure:

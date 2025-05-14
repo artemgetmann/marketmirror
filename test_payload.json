@@ -1,0 +1,10 @@
+{
+  "model": "claude-3-7-sonnet-20250219",
+  "max_tokens": 100,
+  "messages": [
+    {
+      "role": "user",
+      "content": "Summarize Apple Inc in one sentence."
+    }
+  ]
+}

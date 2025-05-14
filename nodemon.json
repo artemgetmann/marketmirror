@@ -1,0 +1,3 @@
+{
+  "ignore": ["*.md", "*_*.json", "*_*.txt", "*.txt", "second_response_raw.json"]
+}

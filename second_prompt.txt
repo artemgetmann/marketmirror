@@ -1,0 +1,95 @@
+I have analyzed the financial metrics for AAPL from Finviz with these values:
+
+Valuation & Growth:
+- P/E (TTM): 33.23
+- P/S: 7.94
+- PEG Ratio: 4.03
+- P/FCF: 32.29
+- P/B: 47.62
+
+Profitability:
+- ROE: 138.02%
+- ROA: 29.10%
+- Profit Margin: 24.30%
+- Sales Growth (5Y): 9.18%
+
+Liquidity & Leverage:
+- Current Ratio: 0.82
+- Debt/Equity: 1.47
+
+Qualitative Factors:
+- Insider Ownership: 0.10%
+- Insider Transactions: -3.19%
+- Dividend TTM: 1.01 (0.47%)
+- Market Cap: 3180.29B
+- Option/Short: Yes / Yes
+
+Here is the analysis table with commentary on each metric:
+
+---
+```markdown
+| Metric                   | Value    | Commentary                                                                                 |
+|--------------------------|----------|--------------------------------------------------------------------------------------------|
+| **Valuation & Growth**   |          |                                                                                            |
+| P/E (TTM)                | 33.23    | Indicates a high valuation, suggesting that investors expect strong future growth.         |
+| P/S                      | 7.94     | Reflects a premium valuation relative to sales, common for tech companies with high margins.|
+| PEG Ratio                | 4.03     | Suggests the stock may be overvalued based on its earnings growth rate.                    |
+| P/FCF                    | 32.29    | Shows a high valuation relative to free cash flow, indicating strong investor demand.      |
+| P/B                      | 47.62    | Very high, indicating the market values the company significantly above its book value.    |
+| **Profitability**        |          |                                                                                            |
+| ROE                      | 138.02%  | Exceptionally high, indicating efficient use of equity to generate profits.                |
+| ROA                      | 29.10%   | Strong return on assets, showing effective use of company resources.                       |
+| Profit Margin            | 24.30%   | High profit margin, reflecting strong pricing power and cost management.                   |
+| Sales Growth (5Y)        | 9.18%    | Moderate growth, consistent with a mature company with established revenue streams.        |
+| **Liquidity & Leverage** |          |                                                                                            |
+| Current Ratio            | 0.82     | Below 1, suggesting potential liquidity concerns, but manageable given Apple's cash reserves.|
+| Debt/Equity              | 1.47     | Indicates a higher reliance on debt, but manageable given strong profitability.            |
+| **Qualitative Factors**  |          |                                                                                            |
+| Insider Ownership        | 0.10%    | Very low, suggesting limited alignment between insiders and shareholders.                  |
+| Insider Transactions     | -3.19%   | Recent insider selling, which may indicate insiders' lack of confidence in near-term prospects.|
+| Dividend TTM             | 1.01 (0.47%) | Low dividend yield, typical of growth-oriented companies.                                 |
+| Market Cap               | 3180.29B | Reflects Apple's status as one of the largest companies globally, with significant market influence.|
+| Option/Short             | Yes / Yes| Presence of options and short interest indicates active trading and hedging activities.    |
+```
+---
+
+Now, perform additional research and create the following sections:
+
+## 2. Recent News
+- Summarize key recent developments affecting the company.
+- Focus on:
+  - Regulatory issues
+  - Layoffs or hiring
+  - Management changes
+  - Political or macroeconomic headwinds
+  - Any impactful product launches or earnings surprises
+
+Sources to use: Google News, MarketBeat, Crunchbase headlines, Yahoo Finance (DO NOT USE Wikipedia)
+
+## 3. Historical Valuation
+- Retrieve the company's historical P/E ratios (ideally year-end values from 2019 to now).
+- Comment on how the current P/E compares to its historical average and highs/lows, using the Finviz P/E of 33.23 as the current value.
+- Use Macrotrends or Gurufocus for accurate historical data only.
+
+## 4. Competitor Comparison
+- Identify main competitors in the same sector.
+- For each competitor (not AAPL), provide:
+  - P/E Ratio
+  - P/S Ratio
+  - Profit Margin
+  - Market Cap
+- For AAPL, use ONLY the Finviz values already provided: P/E: 33.23, P/S: 7.94, Profit Margin: 24.30%, Market Cap: 3180.29B
+- Highlight if AAPL is overvalued or undervalued compared to peers.
+
+Use: Jika.io, https://www.jika.io/quote/AAPL/competitors, Gurufocus https://www.gurufocus.com/stock/AAPL/summary?search=AAPL, or Finviz directly when possible.
+
+## 5. Final Recommendation
+- Based on ALL findings (the metrics in the analysis table plus your new research), provide a comprehensive recommendation:
+  - Consider insider activity, historical valuation, news, and competitor positioning.
+  - Is AAPL a buy, hold, or sell?
+  - How justified is the current valuation?
+  - What risks or catalysts should investors watch?
+
+Include a clear, actionable investment outlook in the final paragraph.
+
+IMPORTANT: Do NOT recreate the Analysis Table. Focus ONLY on generating sections 2-5 as requested, using the Finviz data as authoritative.

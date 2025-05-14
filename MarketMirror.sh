@@ -1,21 +1,8 @@
 #!/usr/bin/env bash
-# Exit on error but don't display commands
-set -eo pipefail
+set -euo pipefail
 
-# Check for dependencies
-if ! command -v jq &> /dev/null; then
-    echo "ERROR: jq is required but not found in PATH. Please install jq."
-    exit 1
-fi
-
-# Your API key - use the one that worked in the debug script
-API_KEY="${CLAUDE_API_KEY}"
-if [ -z "$API_KEY" ]; then
-    echo "ERROR: CLAUDE_API_KEY environment variable is not set."
-    exit 1
-fi
-
-ENDPOINT="https://api.anthropic.com/v1/messages"
+# Your OpenAI API key
+OPENAI_API_KEY="${OPENAI_API_KEY}"
 
 # Check if ticker was provided
 if [ $# -eq 0 ]; then
@@ -31,124 +18,260 @@ echo "Fetching data from Finviz..."
 URL="https://finviz.com/quote.ashx?t=${TICKER}&p=d"
 raw=$(curl -s -A 'Mozilla/5.0' "$URL")
 
-if [ -z "$raw" ]; then
-    echo "ERROR: Failed to fetch data from Finviz or received empty response."
-    exit 1
-fi
-
-# Extract metrics with error checking
-function extract_metric() {
-    local pattern="$1"
-    local default="$2"
-    local result
-    
-    result=$(sed -nE "$pattern" <<<"$raw")
-    if [ -z "$result" ]; then
-        echo "$default"
-    else
-        echo "$result"
-    fi
-}
-
-pe=$(extract_metric 's/.*>P\/E<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' "N/A")
-ps=$(extract_metric 's/.*>P\/S<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' "N/A")
-peg=$(extract_metric 's/.*>PEG<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' "N/A")
-pfcf=$(extract_metric 's/.*>P\/FCF<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' "N/A")
-pb=$(extract_metric 's/.*>P\/B<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' "N/A")
-roe=$(extract_metric 's/.*>ROE<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' "N/A")
-roa=$(extract_metric 's/.*>ROA<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' "N/A")
-pm=$(extract_metric 's/.*>Profit Margin<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' "N/A")
-sales=$(extract_metric 's/.*>Sales past 5Y<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' "N/A")
-cr=$(extract_metric 's/.*>Current Ratio<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' "N/A")
-de=$(extract_metric 's/.*>Debt\/Eq<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' "N/A")
-insider=$(extract_metric 's/.*>Insider Own<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' "N/A")
-div_ttm=$(extract_metric '/Dividend TTM/ s/.*<b>([^<]+)<\/b>.*/\1/p' "No Dividend")
-mcap=$(extract_metric 's/.*>Market Cap<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?[BM]).*/\1/p' "N/A")
-option_short=$(extract_metric '/Option\/Short/ s/.*<b>([^<]+)<\/b>.*/\1/p' "N/A")
-insider_trans=$(extract_metric 's/.*>Insider Trans<\/td>[^>]*>[^-0-9]*(-?[0-9]+(\.[0-9]+)?%).*/\1/p' "N/A")
+# Extract metrics
+pe=$(sed -nE 's/.*>P\/E<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
+ps=$(sed -nE 's/.*>P\/S<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
+peg=$(sed -nE 's/.*>PEG<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
+pfcf=$(sed -nE 's/.*>P\/FCF<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
+pb=$(sed -nE 's/.*>P\/B<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
+roe=$(sed -En 's/.*>ROE<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' <<<"$raw")
+roa=$(sed -nE 's/.*>ROA<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' <<<"$raw")
+pm=$(sed -nE 's/.*>Profit Margin<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' <<<"$raw")
+sales=$(sed -nE 's/.*>Sales past 5Y<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' <<<"$raw")
+cr=$(sed -nE 's/.*>Current Ratio<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
+de=$(sed -nE 's/.*>Debt\/Eq<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
+insider=$(sed -nE 's/.*>Insider Own<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' <<<"$raw")
+div_ttm=$(sed -nE '/Dividend TTM/ s/.*<b>([^<]+)<\/b>.*/\1/p' <<<"$raw")
+mcap=$(sed -En 's/.*>Market Cap<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?[BM]).*/\1/p' <<<"$raw")
+option_short=$(sed -nE '/Option\/Short/ s/.*<b>([^<]+)<\/b>.*/\1/p' <<<"$raw")
+insider_trans=$(sed -nE 's/.*>Insider Trans<\/td>[^>]*>[^-0-9]*(-?[0-9]+(\.[0-9]+)?%).*/\1/p' <<<"$raw")
 
 echo "Data retrieved successfully!"
-echo "Generating analysis..."
 
-# Write payload to a file to avoid any shell escaping issues
-cat > payload.json << EOF
-{
-  "model": "claude-3-7-sonnet-20250219",
-  "max_tokens": 4000,
-  "temperature": 0.5, 
-  "system": "You are a financial analyst with expertise in stock analysis.",
-  "messages": [
-    {
-      "role": "user",
-      "content": "As a financial analyst, please provide a comprehensive analysis of ${TICKER} using the following Finviz data:
+# Create user prompt for first API call - ONLY asking for Analysis Table, not recommendation
+echo "Creating first API prompt..."
+cat > first_prompt.txt << EOF
+As a financial analyst, please provide an analysis table for ${TICKER} using the following Finviz data:
 
 Valuation & Growth:
-- P/E (TTM): ${pe}
-- P/S: ${ps}
-- PEG Ratio: ${peg}
-- P/FCF: ${pfcf}
-- P/B: ${pb}
+- P/E (TTM): ${pe:-N/A}
+- P/S: ${ps:-N/A}
+- PEG Ratio: ${peg:-N/A}
+- P/FCF: ${pfcf:-N/A}
+- P/B: ${pb:-N/A}
 
 Profitability:
-- ROE: ${roe}
-- ROA: ${roa}
-- Profit Margin: ${pm}
-- Sales Growth (5Y): ${sales}
+- ROE: ${roe:-N/A}
+- ROA: ${roa:-N/A}
+- Profit Margin: ${pm:-N/A}
+- Sales Growth (5Y): ${sales:-N/A}
 
 Liquidity & Leverage:
-- Current Ratio: ${cr}
-- Debt/Equity: ${de}
+- Current Ratio: ${cr:-N/A}
+- Debt/Equity: ${de:-N/A}
 
 Qualitative Factors:
-- Insider Ownership: ${insider}
-- Insider Transactions: ${insider_trans}
-- Dividend TTM: ${div_ttm}
-- Market Cap: ${mcap}
-- Option/Short: ${option_short}
+- Insider Ownership: ${insider:-N/A}
+- Insider Transactions: ${insider_trans:-N/A}
+- Dividend TTM: ${div_ttm:-No Dividend}
+- Market Cap: ${mcap:-N/A}
+- Option/Short: ${option_short:-N/A}
 
-Please create a detailed analysis with the following structure:
+Please create ONLY an analysis table in markdown format. The table should list each metric alongside its current value from the data. For each metric, include a brief commentary or qualitative assessment that explains what this metric indicates about the company's financial position. Do not provide an overall recommendation yet.
+EOF
 
-1. Analysis Table: Create a table listing each metric alongside its current value from the data. For each metric, include a brief commentary or qualitative assessment.
-
-2. Final Recommendation: Write a concluding paragraph that summarizes the overall financial health and outlook of the company.
-   - Discuss whether the current valuation is justified based on historical trends
-   - Integrate insights from the quantitative metrics and qualitative factors
-   - Include an investment recommendation (e.g., 'attractive for long-term growth investors despite premium valuation' or 'caution warranted due to near-term challenges')
-
-Format your response in markdown for readability."
+# Create JSON payload for first API call
+echo "Creating first API payload..."
+cat > first_payload.json << EOF
+{
+  "model": "gpt-4o",
+  "temperature": 0.5,
+  "max_tokens": 4000,
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a financial analyst with expertise in stock analysis."
+    },
+    {
+      "role": "user",
+      "content": $(cat first_prompt.txt | jq -Rs .)
     }
   ]
 }
 EOF
 
-# Make the API call
-echo "Analyzing financial data with Claude..."
-api_response=$(curl -s "$ENDPOINT" \
-  -H "x-api-key: $API_KEY" \
-  -H "anthropic-version: 2023-06-01" \
-  -H "content-type: application/json" \
-  -d @payload.json)
+# Make first API call
+echo "Making first API call to OpenAI..."
+first_api_response=$(curl -s "https://api.openai.com/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -d @first_payload.json)
 
-# Extract analysis text from response
-analysis=$(echo "$api_response" | grep -o '"text": ".*"' | sed 's/"text": "\(.*\)"/\1/' | sed 's/\\"/"/g' | sed 's/\\n/\n/g')
+# Extract initial analysis
+echo "Extracting analysis from first response..."
+first_analysis=$(echo "$first_api_response" | jq -r '.choices[0].message.content // "Error: Failed to extract analysis"')
 
-# If analysis extraction failed, try with jq if available
-if [ -z "$analysis" ]; then
-  echo "Extracting analysis with alternative method..."
-  analysis=$(echo "$api_response" | jq -r '.content[0].text // "Error: Could not extract analysis"')
+# Check for errors
+if [[ "$first_analysis" == "Error: Failed to extract analysis" ]]; then
+    echo "ERROR: Failed to get proper response from first OpenAI API call."
+    echo "Raw API response:"
+    echo "$first_api_response"
+    exit 1
 fi
 
-# Verify we got something
-if [ -z "$analysis" ] || [ "$analysis" = "Error: Could not extract analysis" ]; then
-  echo "ERROR: Failed to extract analysis from API response."
-  exit 1
+# Save initial analysis to file
+echo "$first_analysis" > "${TICKER}_initial_analysis.md"
+echo "Initial analysis complete and saved to ${TICKER}_initial_analysis.md"
+
+# Create prompt for second API call - now asking for research sections AND final recommendation
+echo "Creating second API prompt with web search request..."
+cat > second_prompt.txt << EOF
+I have analyzed the financial metrics for ${TICKER} from Finviz with these values:
+
+Valuation & Growth:
+- P/E (TTM): ${pe:-N/A}
+- P/S: ${ps:-N/A}
+- PEG Ratio: ${peg:-N/A}
+- P/FCF: ${pfcf:-N/A}
+- P/B: ${pb:-N/A}
+
+Profitability:
+- ROE: ${roe:-N/A}
+- ROA: ${roa:-N/A}
+- Profit Margin: ${pm:-N/A}
+- Sales Growth (5Y): ${sales:-N/A}
+
+Liquidity & Leverage:
+- Current Ratio: ${cr:-N/A}
+- Debt/Equity: ${de:-N/A}
+
+Qualitative Factors:
+- Insider Ownership: ${insider:-N/A}
+- Insider Transactions: ${insider_trans:-N/A}
+- Dividend TTM: ${div_ttm:-No Dividend}
+- Market Cap: ${mcap:-N/A}
+- Option/Short: ${option_short:-N/A}
+
+Here is the analysis table with commentary on each metric:
+
+---
+${first_analysis}
+---
+
+Now, perform additional research and create the following sections:
+
+## 2. Recent News
+- Summarize key recent developments affecting the company.
+- Focus on:
+  - Regulatory issues
+  - Layoffs or hiring
+  - Management changes
+  - Political or macroeconomic headwinds
+  - Any impactful product launches or earnings surprises
+
+Sources to use: Google News, MarketBeat, Crunchbase headlines, Yahoo Finance (DO NOT USE Wikipedia)
+
+## 3. Historical Valuation
+- Retrieve the company's historical P/E ratios (ideally year-end values from 2019 to now).
+- Comment on how the current P/E compares to its historical average and highs/lows, using the Finviz P/E of ${pe:-N/A} as the current value.
+- Use Macrotrends or Gurufocus for accurate historical data only.
+
+## 4. Competitor Comparison
+- Identify main competitors in the same sector.
+- For each competitor (not ${TICKER}), provide:
+  - P/E Ratio
+  - P/S Ratio
+  - Profit Margin
+  - Market Cap
+- For ${TICKER}, use ONLY the Finviz values already provided: P/E: ${pe:-N/A}, P/S: ${ps:-N/A}, Profit Margin: ${pm:-N/A}, Market Cap: ${mcap:-N/A}
+- Highlight if ${TICKER} is overvalued or undervalued compared to peers.
+
+Use: Jika.io, https://www.jika.io/quote/${TICKER}/competitors, Gurufocus https://www.gurufocus.com/stock/${TICKER}/summary?search=${TICKER}, or Finviz directly when possible.
+
+## 5. Final Recommendation
+- Based on ALL findings (the metrics in the analysis table plus your new research), provide a comprehensive recommendation:
+  - Consider insider activity, historical valuation, news, and competitor positioning.
+  - Is ${TICKER} a buy, hold, or sell?
+  - How justified is the current valuation?
+  - What risks or catalysts should investors watch?
+
+Include a clear, actionable investment outlook in the final paragraph.
+
+IMPORTANT: Do NOT recreate the Analysis Table. Focus ONLY on generating sections 2-5 as requested, using the Finviz data as authoritative.
+EOF
+
+# Create JSON payload for second API call with web search
+echo "Creating second API payload..."
+cat > second_payload.json << EOF
+{
+  "model": "gpt-4.1",
+  "input": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "input_text",
+          "text": $(cat second_prompt.txt | jq -Rs .)
+        }
+      ]
+    }
+  ],
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "reasoning": {},
+  "tools": [
+    {
+      "type": "web_search_preview",
+      "user_location": {
+        "type": "approximate"
+      },
+      "search_context_size": "medium"
+    }
+  ],
+  "temperature": 0.7,
+  "max_output_tokens": 4000,
+  "top_p": 1,
+  "store": true
+}
+EOF
+
+# Make second API call
+echo "Making second API call with web search..."
+second_api_response=$(curl -s "https://api.openai.com/v1/responses" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -d @second_payload.json)
+
+# Save raw response for debugging
+echo "$second_api_response" > second_response_raw.json
+
+# Extract the enhanced analysis
+# For the Responses API, we need to find the message content after the web_search_call
+echo "Extracting enhanced analysis..."
+enhanced_analysis=$(echo "$second_api_response" | jq -r '.output[] | select(.type=="message") | .content[0].text // empty')
+
+# Check if extraction failed
+if [[ -z "$enhanced_analysis" ]]; then
+    echo "WARNING: Couldn't extract content from second API call. Using initial analysis only."
+    enhanced_analysis="## 2. No Additional Research\n\nFailed to retrieve additional research data."
+    
+    # Print additional details for debugging
+    echo "Error details or raw response saved to second_response_raw.json"
+else
+    echo "Successfully extracted enhanced analysis with web search results."
 fi
+
+# Remove any accidental analysis table from enhanced analysis
+enhanced_analysis=$(echo "$enhanced_analysis" | sed '/## 1. Analysis Table/,/## 2/d' | sed '/# Analysis Table/,/# Recent/d')
+
+# Combine the parts into the final analysis
+echo "Combining parts into comprehensive analysis..."
+final_analysis="# Comprehensive Financial Analysis of ${TICKER}
+
+## 1. Analysis Table
+${first_analysis}
+
+${enhanced_analysis}"
 
 # Print the final analysis
 echo "========== COMPREHENSIVE FINANCIAL ANALYSIS OF $TICKER =========="
-echo "$analysis"
+echo "$final_analysis"
 
 # Save to file
-echo "$analysis" > "${TICKER}_comprehensive_analysis_$(date +%Y%m%d).md"
+output_file="${TICKER}_comprehensive_analysis_$(date +%Y%m%d).md"
+echo "$final_analysis" > "$output_file"
 echo ""
-echo "Comprehensive analysis saved to ${TICKER}_comprehensive_analysis_$(date +%Y%m%d).md"
+echo "Comprehensive analysis saved to $output_file"
