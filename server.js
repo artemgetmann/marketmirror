@@ -11,7 +11,22 @@ const port = process.env.PORT || 3000;
 
 // Enable CORS with configuration to allow Lovable domains
 app.use(cors({
-  origin: ['https://lovable.dev', 'https://marketmirror-clarity-view.lovable.dev', 'http://localhost:3000'],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Allow if it's from lovable domains
+    if (
+      origin === 'https://lovable.dev' ||
+      origin === 'https://marketmirror-clarity-view.lovable.dev' ||
+      origin.endsWith('.lovable.app') || // This handles all preview URLs
+      origin === 'http://localhost:3000'
+    ) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   methods: ['GET', 'POST'],
   credentials: true
 }));
