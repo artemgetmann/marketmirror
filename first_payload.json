@@ -1,15 +1,24 @@
 {
-  "model": "gpt-4o",
-  "temperature": 0.5,
-  "max_tokens": 4000,
-  "messages": [
-    {
-      "role": "system",
-      "content": "You are a financial analyst with expertise in stock analysis."
-    },
+  "model": "gpt-4.1",
+  "input": [
     {
       "role": "user",
-      "content": "As a financial analyst, please provide an analysis table for AAPL using the following Finviz data:\n\nValuation & Growth:\n- P/E (TTM): 33.23\n- P/S: 7.94\n- PEG Ratio: 4.03\n- P/FCF: 32.29\n- P/B: 47.62\n\nProfitability:\n- ROE: 138.02%\n- ROA: 29.10%\n- Profit Margin: 24.30%\n- Sales Growth (5Y): 9.18%\n\nLiquidity & Leverage:\n- Current Ratio: 0.82\n- Debt/Equity: 1.47\n\nQualitative Factors:\n- Insider Ownership: 0.10%\n- Insider Transactions: -3.19%\n- Dividend TTM: 1.01 (0.47%)\n- Market Cap: 3180.29B\n- Option/Short: Yes / Yes\n\nPlease create ONLY an analysis table in markdown format. The table should list each metric alongside its current value from the data. For each metric, include a brief commentary or qualitative assessment that explains what this metric indicates about the company's financial position. Do not provide an overall recommendation yet.\n"
+      "content": [
+        {
+          "type": "input_text",
+          "text": "As a financial analyst, please provide an analysis table for TSLA using the following Finviz data:\n\nValuation & Growth:\n- P/E (TTM): 189.56\n- P/S: 11.58\n- PEG Ratio: 9.21\n- P/FCF: 163.53\n- P/B: 14.87\n\nProfitability:\n- ROE: 9.16%\n- ROA: 5.43%\n- Profit Margin: 6.65%\n- Sales Growth (5Y): 34.02%\n\nLiquidity & Leverage:\n- Current Ratio: 2.00\n- Debt/Equity: 0.18\n\nQualitative Factors:\n- Insider Ownership: 12.90%\n- Insider Transactions: -0.25%\n- Dividend TTM: -\n- Market Cap: 1108.70B\n- Option/Short: Yes / Yes\n\nPlease create ONLY an analysis table in markdown format - do NOT wrap the table in markdown code blocks (no triple backticks). The table should list each metric alongside its current value from the data. For each metric, include a brief commentary or qualitative assessment that explains what this metric indicates about the company's financial position, maybe mention what is a good/ideal ratio for this company or other companies in the industry. Do not provide an overall recommendation yet.\n"
+        }
+      ]
     }
-  ]
+  ],
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "reasoning": {},
+  "temperature": 0.5,
+  "max_output_tokens": 4000,
+  "top_p": 1,
+  "store": true
 }

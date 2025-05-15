@@ -67,39 +67,48 @@ Qualitative Factors:
 - Market Cap: ${mcap:-N/A}
 - Option/Short: ${option_short:-N/A}
 
-Please create ONLY an analysis table in markdown format. The table should list each metric alongside its current value from the data. For each metric, include a brief commentary or qualitative assessment that explains what this metric indicates about the company's financial position. Do not provide an overall recommendation yet.
+Please create ONLY an analysis table in markdown format - do NOT wrap the table in markdown code blocks (no triple backticks). The table should list each metric alongside its current value from the data. For each metric, include a brief commentary or qualitative assessment that explains what this metric indicates about the company's financial position, maybe mention what is a good/ideal ratio for this company or other companies in the industry. Do not provide an overall recommendation yet.
 EOF
 
 # Create JSON payload for first API call
 echo "Creating first API payload..."
 cat > first_payload.json << EOF
 {
-  "model": "gpt-4o",
-  "temperature": 0.5,
-  "max_tokens": 4000,
-  "messages": [
-    {
-      "role": "system",
-      "content": "You are a financial analyst with expertise in stock analysis."
-    },
+  "model": "gpt-4.1",
+  "input": [
     {
       "role": "user",
-      "content": $(cat first_prompt.txt | jq -Rs .)
+      "content": [
+        {
+          "type": "input_text",
+          "text": $(cat first_prompt.txt | jq -Rs .)
+        }
+      ]
     }
-  ]
+  ],
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "reasoning": {},
+  "temperature": 0.5,
+  "max_output_tokens": 4000,
+  "top_p": 1,
+  "store": true
 }
 EOF
 
 # Make first API call
 echo "Making first API call to OpenAI..."
-first_api_response=$(curl -s "https://api.openai.com/v1/chat/completions" \
+first_api_response=$(curl -s "https://api.openai.com/v1/responses" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $OPENAI_API_KEY" \
   -d @first_payload.json)
 
-# Extract initial analysis
+# Extract initial analysis - update to match Responses API format
 echo "Extracting analysis from first response..."
-first_analysis=$(echo "$first_api_response" | jq -r '.choices[0].message.content // "Error: Failed to extract analysis"')
+first_analysis=$(echo "$first_api_response" | jq -r '.output[] | select(.type=="message") | .content[0].text // "Error: Failed to extract analysis"')
 
 # Check for errors
 if [[ "$first_analysis" == "Error: Failed to extract analysis" ]]; then
@@ -142,13 +151,9 @@ Qualitative Factors:
 - Market Cap: ${mcap:-N/A}
 - Option/Short: ${option_short:-N/A}
 
-Here is the analysis table with commentary on each metric:
+The Analysis Table section has already been created separately. YOU MUST NOT REGENERATE THE ANALYSIS TABLE.
 
----
-${first_analysis}
----
-
-Now, perform additional research and create the following sections:
+Now, perform additional research and create ONLY the following sections:
 
 ## 2. Recent News
 - Summarize key recent developments affecting the company.
@@ -159,7 +164,7 @@ Now, perform additional research and create the following sections:
   - Political or macroeconomic headwinds
   - Any impactful product launches or earnings surprises
 
-Sources to use: Google News, MarketBeat, Crunchbase headlines, Yahoo Finance (DO NOT USE Wikipedia)
+Sources to use: Google News, MarketBeat, Crunchbase headlines, Yahoo Finance
 
 ## 3. Historical Valuation
 - Retrieve the company's historical P/E ratios (ideally year-end values from 2019 to now).
@@ -167,19 +172,19 @@ Sources to use: Google News, MarketBeat, Crunchbase headlines, Yahoo Finance (DO
 - Use Macrotrends or Gurufocus for accurate historical data only.
 
 ## 4. Competitor Comparison
-- Identify main competitors in the same sector.
-- For each competitor (not ${TICKER}), provide:
-  - P/E Ratio
-  - P/S Ratio
-  - Profit Margin
-  - Market Cap
+- Present a clean comparison table of ${TICKER} and its main competitors with the following format:
+
+| Company | P/E Ratio | P/S Ratio | Profit Margin | Market Cap (B) |
+|---------|-----------|-----------|---------------|----------------|
+| ${TICKER} | ${pe:-N/A} | ${ps:-N/A} | ${pm:-N/A} | ${mcap:-N/A} |
+| Competitor 1 | value | value | value | value |
+| Competitor 2 | value | value | value | value |
+
 - For ${TICKER}, use ONLY the Finviz values already provided: P/E: ${pe:-N/A}, P/S: ${ps:-N/A}, Profit Margin: ${pm:-N/A}, Market Cap: ${mcap:-N/A}
 - Highlight if ${TICKER} is overvalued or undervalued compared to peers.
 
-Use: Jika.io, https://www.jika.io/quote/${TICKER}/competitors, Gurufocus https://www.gurufocus.com/stock/${TICKER}/summary?search=${TICKER}, or Finviz directly when possible.
-
 ## 5. Final Recommendation
-- Based on ALL findings (the metrics in the analysis table plus your new research), provide a comprehensive recommendation:
+- Based on ALL findings, provide a comprehensive recommendation:
   - Consider insider activity, historical valuation, news, and competitor positioning.
   - Is ${TICKER} a buy, hold, or sell?
   - How justified is the current valuation?
@@ -187,7 +192,7 @@ Use: Jika.io, https://www.jika.io/quote/${TICKER}/competitors, Gurufocus https:/
 
 Include a clear, actionable investment outlook in the final paragraph.
 
-IMPORTANT: Do NOT recreate the Analysis Table. Focus ONLY on generating sections 2-5 as requested, using the Finviz data as authoritative.
+IMPORTANT: ONLY generate sections 2-5. Do NOT include section 1 (Analysis Table) in your response. This will be combined with an existing analysis table.
 EOF
 
 # Create JSON payload for second API call with web search
@@ -266,12 +271,10 @@ ${first_analysis}
 
 ${enhanced_analysis}"
 
-# Print the final analysis
+# Print the final analysis (extract just the actual analysis without script logs):
 echo "========== COMPREHENSIVE FINANCIAL ANALYSIS OF $TICKER =========="
-echo "$final_analysis"
+echo "$final_analysis" | grep -v "Analyzing " | grep -v "Fetching data" | grep -v "Data retrieved" | grep -v "Creating " | grep -v "Making " | grep -v "Extracting " | grep -v "Successfully extracted" | grep -v "Combining parts" | grep -v "==========" | grep -v "saved to"
 
 # Save to file
 output_file="${TICKER}_comprehensive_analysis_$(date +%Y%m%d).md"
 echo "$final_analysis" > "$output_file"
-echo ""
-echo "Comprehensive analysis saved to $output_file"

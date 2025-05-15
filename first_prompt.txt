@@ -1,27 +1,27 @@
-As a financial analyst, please provide an analysis table for AAPL using the following Finviz data:
+As a financial analyst, please provide an analysis table for TSLA using the following Finviz data:
 
 Valuation & Growth:
-- P/E (TTM): 33.23
-- P/S: 7.94
-- PEG Ratio: 4.03
-- P/FCF: 32.29
-- P/B: 47.62
+- P/E (TTM): 189.56
+- P/S: 11.58
+- PEG Ratio: 9.21
+- P/FCF: 163.53
+- P/B: 14.87
 
 Profitability:
-- ROE: 138.02%
-- ROA: 29.10%
-- Profit Margin: 24.30%
-- Sales Growth (5Y): 9.18%
+- ROE: 9.16%
+- ROA: 5.43%
+- Profit Margin: 6.65%
+- Sales Growth (5Y): 34.02%
 
 Liquidity & Leverage:
-- Current Ratio: 0.82
-- Debt/Equity: 1.47
+- Current Ratio: 2.00
+- Debt/Equity: 0.18
 
 Qualitative Factors:
-- Insider Ownership: 0.10%
-- Insider Transactions: -3.19%
-- Dividend TTM: 1.01 (0.47%)
-- Market Cap: 3180.29B
+- Insider Ownership: 12.90%
+- Insider Transactions: -0.25%
+- Dividend TTM: -
+- Market Cap: 1108.70B
 - Option/Short: Yes / Yes
 
-Please create ONLY an analysis table in markdown format. The table should list each metric alongside its current value from the data. For each metric, include a brief commentary or qualitative assessment that explains what this metric indicates about the company's financial position. Do not provide an overall recommendation yet.
+Please create ONLY an analysis table in markdown format - do NOT wrap the table in markdown code blocks (no triple backticks). The table should list each metric alongside its current value from the data. For each metric, include a brief commentary or qualitative assessment that explains what this metric indicates about the company's financial position, maybe mention what is a good/ideal ratio for this company or other companies in the industry. Do not provide an overall recommendation yet.
