@@ -7,22 +7,26 @@ import { toast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import { AnalysisSection } from "@/components/AnalysisSection";
 import Logo from "@/components/Logo";
-import { ChartCandlestick } from "lucide-react";
+import { ChartCandlestick, Archive } from "lucide-react";
 
 interface AnalysisData {
   success: boolean;
   ticker: string;
   analysis: string;
   error?: string;
+  fromCache?: boolean; // New field returned by the API
 }
 
-const fetchAnalysis = async (ticker: string): Promise<AnalysisData> => {
+const fetchAnalysis = async (ticker: string, bypassCache: boolean = false): Promise<AnalysisData> => {
   const response = await fetch("https://marketmirror-api.onrender.com/analyze", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ ticker }),
+    body: JSON.stringify({ 
+      ticker,
+      bypassCache // Include this in the request
+    }),
   });
 
   if (!response.ok) {
@@ -35,13 +39,21 @@ const fetchAnalysis = async (ticker: string): Promise<AnalysisData> => {
 
 const Analysis = () => {
   const { ticker = "" } = useParams<{ ticker: string }>();
+  const [bypassCache, setBypassCache] = useState(false);
 
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["analysis", ticker],
-    queryFn: () => fetchAnalysis(ticker),
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["analysis", ticker, bypassCache],
+    queryFn: () => fetchAnalysis(ticker, bypassCache),
     retry: 1,
     enabled: !!ticker,
   });
+
+  const refreshAnalysis = () => {
+    setBypassCache(true);
+    refetch().finally(() => {
+      setBypassCache(false);
+    });
+  };
 
   useEffect(() => {
     if (isError) {
@@ -68,14 +80,14 @@ const Analysis = () => {
       <div className="max-w-4xl mx-auto w-full">
         <div className="mb-8">
           <h2 className="text-3xl font-medium">
-            {ticker} Analysis
+            {ticker.toUpperCase()} Analysis
           </h2>
         </div>
 
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-16">
             <ChartCandlestick className="animate-spin h-16 w-16 text-black mb-4" />
-            <p className="text-xl text-gray-600">Analyzing {ticker}...</p>
+            <p className="text-xl text-gray-600">Analyzing {ticker.toUpperCase()}...</p>
           </div>
         )}
 
@@ -83,7 +95,7 @@ const Analysis = () => {
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <h3 className="text-xl font-medium text-red-800 mb-2">Analysis Failed</h3>
             <p className="text-red-600 mb-4">
-              {(error as Error)?.message || `Failed to analyze ${ticker}`}
+              {(error as Error)?.message || `Failed to analyze ${ticker.toUpperCase()}`}
             </p>
             <Link to="/">
               <Button variant="outline" className="mt-2">
@@ -94,14 +106,30 @@ const Analysis = () => {
         )}
 
         {!isLoading && !isError && data && (
-          <AnalysisSection
-            title={`${data.ticker} Analysis Results`}
-            content={
-              <div className="prose max-w-none">
-                <ReactMarkdown>{data.analysis}</ReactMarkdown>
+          <>
+            {data.fromCache && (
+              <div className="flex items-center gap-2 mb-4 bg-blue-50 p-3 rounded-md text-blue-700">
+                <Archive className="h-4 w-4" />
+                <span className="text-sm">Data loaded from cache</span>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="ml-auto text-xs"
+                  onClick={refreshAnalysis}
+                >
+                  Refresh Data
+                </Button>
               </div>
-            }
-          />
+            )}
+            <AnalysisSection
+              title={`${data.ticker} Analysis Results`}
+              content={
+                <div className="prose max-w-none">
+                  <ReactMarkdown>{data.analysis}</ReactMarkdown>
+                </div>
+              }
+            />
+          </>
         )}
       </div>
     </div>
