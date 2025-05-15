@@ -3,50 +3,54 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import Logo from "@/components/Logo";
-import { toast } from "@/hooks/use-toast";
+import { Logo } from "@/components/Logo";
 
 const Index = () => {
   const [tickerSymbol, setTickerSymbol] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (tickerSymbol.trim()) {
+      setIsSubmitting(true);
+      // Navigate to the analysis page with the ticker symbol
       navigate(`/analysis/${tickerSymbol.toUpperCase()}`);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-4 py-6 bg-white">
-      <div className="absolute top-6 left-6">
-        <Logo />
-      </div>
-      
-      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xl mx-auto text-center space-y-6">
-        <h1 className="text-5xl font-medium text-black">MarketMirror</h1>
-        <p className="text-xl text-gray-700">A space for financial clarity</p>
-        
-        <form onSubmit={handleSubmit} className="mt-12 space-y-6 w-full">
-          <Input
-            type="text"
-            placeholder="Enter ticker symbol (e.g., AAPL)"
-            className="w-full h-14 text-lg bg-[#F8F8F8] border border-gray-200 rounded-md px-4"
-            value={tickerSymbol}
-            onChange={(e) => setTickerSymbol(e.target.value)}
-          />
+    <div className="min-h-screen flex flex-col px-4 bg-white">
+      <div className="flex-1 flex flex-col items-center justify-center">
+        <div className="w-full max-w-xl text-center space-y-6">
+          <div className="flex justify-center mb-4">
+            <Logo />
+          </div>
+          <p className="text-xl text-gray-700">A space for financial clarity</p>
           
-          <Button 
-            type="submit"
-            className="w-40 h-12 bg-black hover:bg-gray-800 text-white rounded-full text-lg"
-            disabled={!tickerSymbol.trim()}
-          >
-            Begin
-          </Button>
-        </form>
+          <form onSubmit={handleSubmit} className="mt-12 space-y-6">
+            <Input
+              type="text"
+              placeholder="Enter ticker symbol (e.g., AAPL)"
+              className="w-full h-14 text-lg bg-[#F8F8F8] border border-gray-200 rounded-md px-4"
+              value={tickerSymbol}
+              onChange={(e) => setTickerSymbol(e.target.value)}
+              disabled={isSubmitting}
+            />
+            
+            <Button 
+              type="submit"
+              className="w-40 h-12 bg-black hover:bg-gray-800 text-white rounded-full text-lg"
+              disabled={!tickerSymbol.trim() || isSubmitting}
+            >
+              {isSubmitting ? "Loading..." : "Begin"}
+            </Button>
+          </form>
+        </div>
       </div>
       
-      <div className="text-center text-sm text-gray-500 mt-12">
+      <div className="text-center pb-6 text-sm text-gray-500">
         MarketMirror is in Beta
       </div>
     </div>
