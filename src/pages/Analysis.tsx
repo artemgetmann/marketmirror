@@ -8,14 +8,6 @@ import ReactMarkdown from "react-markdown";
 import { AnalysisSection } from "@/components/AnalysisSection";
 import Logo from "@/components/Logo";
 import { ChartCandlestick } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 interface AnalysisData {
   success: boolean;
@@ -41,19 +33,6 @@ const fetchAnalysis = async (ticker: string): Promise<AnalysisData> => {
   return await response.json();
 };
 
-// Helper function to clean the analysis text by removing debug messages
-const cleanAnalysisText = (text: string): string => {
-  if (!text) return "";
-  
-  // Filter out debug lines
-  return text
-    .split('\n')
-    .filter(line => 
-      !line.match(/Analyzing|Fetching data|Data retrieved|Creating|Making|Extracting|Successfully extracted|Combining parts|==========/)
-    )
-    .join('\n');
-};
-
 const Analysis = () => {
   const { ticker = "" } = useParams<{ ticker: string }>();
 
@@ -73,9 +52,6 @@ const Analysis = () => {
       });
     }
   }, [isError, error]);
-
-  // Process and clean analysis text if data exists
-  const cleanedAnalysis = data ? cleanAnalysisText(data.analysis) : "";
 
   return (
     <div className="min-h-screen flex flex-col p-6 bg-white">
@@ -121,32 +97,8 @@ const Analysis = () => {
           <AnalysisSection
             title={`${data.ticker} Analysis Results`}
             content={
-              <div className="prose max-w-none analysis-content">
-                <ReactMarkdown 
-                  components={{
-                    // Custom table rendering
-                    table: ({ node, ...props }) => (
-                      <Table {...props} className="my-4 border-collapse w-full" />
-                    ),
-                    thead: ({ node, ...props }) => (
-                      <TableHeader {...props} className="bg-gray-50" />
-                    ),
-                    tr: ({ node, ...props }) => (
-                      <TableRow {...props} />
-                    ),
-                    th: ({ node, ...props }) => (
-                      <TableHead {...props} className="py-3 px-4 text-left font-semibold text-gray-900" />
-                    ),
-                    td: ({ node, ...props }) => (
-                      <TableCell {...props} className="py-2 px-4 border-t border-gray-200" />
-                    ),
-                    tbody: ({ node, ...props }) => (
-                      <TableBody {...props} />
-                    ),
-                  }}
-                >
-                  {cleanedAnalysis}
-                </ReactMarkdown>
+              <div className="prose max-w-none">
+                <ReactMarkdown>{data.analysis}</ReactMarkdown>
               </div>
             }
           />
