@@ -94,19 +94,97 @@ export default {
 			typography: {
 				DEFAULT: {
 					css: {
-						maxWidth: 'none',
+						maxWidth: '100%',
 						color: 'var(--tw-prose-body)',
-						'> *': {
-							marginTop: '1.5em',
-							marginBottom: '1.5em',
+						'[class~="lead"]': {
+							color: 'var(--tw-prose-lead)',
 						},
-					},
-				},
-			},
+						a: {
+							color: 'var(--tw-prose-links)',
+							textDecoration: 'underline',
+							fontWeight: '500',
+						},
+						strong: {
+							color: 'var(--tw-prose-bold)',
+							fontWeight: '600',
+						},
+						'ol[type="A"]': {
+							listStyleType: 'upper-alpha',
+						},
+						'ol[type="a"]': {
+							listStyleType: 'lower-alpha',
+						},
+						'ol[type="A" s]': {
+							listStyleType: 'upper-alpha',
+						},
+						'ol[type="a" s]': {
+							listStyleType: 'lower-alpha',
+						},
+						'ol[type="I"]': {
+							listStyleType: 'upper-roman',
+						},
+						'ol[type="i"]': {
+							listStyleType: 'lower-roman',
+						},
+						'ol[type="I" s]': {
+							listStyleType: 'upper-roman',
+						},
+						'ol[type="i" s]': {
+							listStyleType: 'lower-roman',
+						},
+						'ol[type="1"]': {
+							listStyleType: 'decimal',
+						},
+						'ol > li': {
+							position: 'relative',
+						},
+						'ul > li': {
+							position: 'relative',
+						},
+						'ul > li::marker': {
+							color: 'var(--tw-prose-bullets)',
+						},
+						'ol > li::marker': {
+							color: 'var(--tw-prose-counters)',
+						},
+						h1: {
+							color: 'var(--tw-prose-headings)',
+							fontWeight: '800',
+							fontSize: '2.25em',
+							marginTop: '0',
+							marginBottom: '0.8888889em',
+							lineHeight: '1.1111111',
+						},
+						h2: {
+							color: 'var(--tw-prose-headings)',
+							fontWeight: '700',
+							fontSize: '1.5em',
+							marginTop: '2em',
+							marginBottom: '1em',
+							lineHeight: '1.3333333',
+						},
+						h3: {
+							color: 'var(--tw-prose-headings)',
+							fontWeight: '600',
+							fontSize: '1.25em',
+							marginTop: '1.6em',
+							marginBottom: '0.6em',
+							lineHeight: '1.6',
+						},
+						h4: {
+							color: 'var(--tw-prose-headings)',
+							fontWeight: '600',
+							marginTop: '1.5em',
+							marginBottom: '0.5em',
+							lineHeight: '1.5',
+						},
+					}
+				}
+			}
 		}
 	},
 	plugins: [
 		require("tailwindcss-animate"),
-		require('@tailwindcss/typography'),
+		require("@tailwindcss/typography")
 	],
 } satisfies Config;

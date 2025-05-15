@@ -1,15 +1,12 @@
 
 import React from "react";
 
-export const Logo: React.FC = () => {
-  return (
-    <div className="flex items-center">
-      <img 
-        src="/lovable-uploads/37c8b23a-bdfe-4834-ba6e-667514d2a4e1.png" 
-        alt="MarketMirror Logo" 
-        className="w-12 h-12 mr-3" 
-      />
-      <span className="text-3xl font-medium">MarketMirror</span>
-    </div>
-  );
-};
+const Logo = () => (
+  <img 
+    src="/lovable-uploads/ce9916c4-8dc2-4dcd-9059-ec952244ae2d.png" 
+    alt="MarketMirror Logo" 
+    className="h-12 w-12"
+  />
+);
+
+export default Logo;
