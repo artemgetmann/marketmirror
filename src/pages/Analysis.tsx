@@ -22,10 +22,7 @@ const fetchAnalysis = async (ticker: string): Promise<AnalysisData> => {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ 
-      ticker,
-      bypassCache: true // Add this line to bypass cache during testing
-    }),
+    body: JSON.stringify({ ticker }),
   });
 
   if (!response.ok) {
