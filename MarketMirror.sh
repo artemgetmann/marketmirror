@@ -17,7 +17,7 @@ fi
 
 TICKER=$1
 debug "Analyzing $TICKER..."
-debug "Fetching data from Finviz..."
+debug "Fetching data from Edgar..."
 
 # Fetch the page
 URL="https://finviz.com/quote.ashx?t=${TICKER}&p=d"
@@ -105,7 +105,7 @@ cat > first_payload.json << EOF
 EOF
 
 # Make first API call
-debug "Making first API call to OpenAI..."
+debug "Making first API call to API..."
 first_api_response=$(curl -s "https://api.openai.com/v1/responses" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $OPENAI_API_KEY" \
@@ -117,7 +117,7 @@ first_analysis=$(echo "$first_api_response" | jq -r '.output[] | select(.type=="
 
 # Check for errors
 if [[ "$first_analysis" == "Error: Failed to extract analysis" ]]; then
-    debug "ERROR: Failed to get proper response from first OpenAI API call."
+    debug "ERROR: Failed to get proper response from first API call."
     debug "Raw API response:"
     debug "$first_api_response"
     exit 1
