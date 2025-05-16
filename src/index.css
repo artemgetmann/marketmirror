@@ -99,3 +99,104 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Financial Tables Styling */
+.prose table {
+  width: 100%;
+  margin: 2rem 0;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  table-layout: fixed;
+}
+
+.prose table thead {
+  background-color: #f8f8f8;
+  border-bottom: 2px solid #e5e5e5;
+}
+
+.prose table th {
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.prose table th[align="right"],
+.prose table td[align="right"] {
+  text-align: right;
+}
+
+.prose table th[align="center"],
+.prose table td[align="center"] {
+  text-align: center;
+}
+
+.prose table td {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #e5e5e5;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+/* Allow text wrap for commentary cells but keep numbers aligned */
+.prose table td:last-child:not([align="right"]) {
+  white-space: normal;
+  text-align: left;
+}
+
+.prose table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Table container for better mobile responsiveness */
+.prose .table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin: 2rem 0;
+}
+
+/* Special styling for competitor comparison tables */
+.prose h4 + p + .table-container table,
+.prose h3 + p + .table-container table {
+  table-layout: fixed;
+}
+
+.prose h4 + p + .table-container table th,
+.prose h3 + p + .table-container table th {
+  text-align: center;
+}
+
+.prose h4 + p + .table-container table td,
+.prose h3 + p + .table-container table td {
+  text-align: center;
+}
+
+.prose h4 + p + .table-container table td:first-child,
+.prose h3 + p + .table-container table td:first-child {
+  text-align: left;
+}
+
+/* Numeric values should be center-aligned in comparison tables */
+.prose h4 + p + .table-container table td[align="right"],
+.prose h3 + p + .table-container table td[align="right"] {
+  text-align: center;
+}
+
+/* Make sure tables scroll horizontally on mobile */
+@media (max-width: 768px) {
+  .prose table {
+    font-size: 0.8rem;
+  }
+  
+  .prose table th,
+  .prose table td {
+    padding: 0.5rem;
+  }
+  
+  /* Highlight data cells for better readability */
+  .prose table td[align="right"] {
+    font-weight: 500;
+  }
+}
