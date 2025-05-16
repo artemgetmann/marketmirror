@@ -20,7 +20,7 @@ app.use(cors({
       origin === 'https://lovable.dev' ||
       origin === 'https://marketmirror-clarity-view.lovable.dev' ||
       origin.endsWith('.lovable.app') || // This handles all preview URLs
-      origin === 'http://localhost:3000'
+      origin === 'http://localhost:3000' ||
       origin === 'http://localhost:8080'
     ) {
       return callback(null, true);
