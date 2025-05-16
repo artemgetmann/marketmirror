@@ -20,9 +20,11 @@ export const AnalysisSection: React.FC<AnalysisSectionProps> = ({ title, content
               table: ({ node, ...props }) => <MarkdownTable {...props} />,
               thead: ({ node, ...props }) => <>{props.children}</>,
               tbody: ({ node, ...props }) => <>{props.children}</>,
-              tr: ({ node, isHeader, ...props }) => (
-                <MarkdownTableRow isHeader={Boolean(isHeader)} {...props} />
-              ),
+              tr: ({ node, ...props }) => {
+                // Check if this row is inside a thead to determine if it's a header
+                const isHeader = node?.parent?.type === 'tableHead';
+                return <MarkdownTableRow isHeader={isHeader}>{props.children}</MarkdownTableRow>;
+              },
               th: ({ node, ...props }) => <>{props.children}</>,
               td: ({ node, ...props }) => <>{props.children}</>,
             }}

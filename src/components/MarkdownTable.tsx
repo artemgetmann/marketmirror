@@ -10,11 +10,13 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-interface MarkdownTableProps {
+export interface MarkdownTableProps {
   children: React.ReactNode;
+  className?: string;
+  [key: string]: any; // Allow additional props
 }
 
-export const MarkdownTable = ({ children }: MarkdownTableProps) => {
+export const MarkdownTable = ({ children, className, ...props }: MarkdownTableProps) => {
   // Process the children to find the table data
   const childrenArray = React.Children.toArray(children);
   
@@ -29,7 +31,7 @@ export const MarkdownTable = ({ children }: MarkdownTableProps) => {
 
   return (
     <div className="overflow-x-auto my-4">
-      <Table className="financial-table">
+      <Table className={cn("financial-table", className)} {...props}>
         {headerRow && (
           <TableHeader>
             {React.cloneElement(headerRow as React.ReactElement)}
@@ -45,9 +47,16 @@ export const MarkdownTable = ({ children }: MarkdownTableProps) => {
   );
 };
 
-export const MarkdownTableRow = ({ children, isHeader }: { children: React.ReactNode, isHeader?: boolean }) => {
+export interface MarkdownTableRowProps {
+  children: React.ReactNode;
+  isHeader?: boolean;
+  className?: string;
+  [key: string]: any; // Allow additional props
+}
+
+export const MarkdownTableRow = ({ children, isHeader, className, ...props }: MarkdownTableRowProps) => {
   return (
-    <TableRow className={isHeader ? "bg-muted" : undefined}>
+    <TableRow className={cn(isHeader ? "bg-muted" : undefined, className)} {...props}>
       {React.Children.map(children, (cell, index) => {
         if (!React.isValidElement(cell)) return null;
         
