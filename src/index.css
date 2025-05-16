@@ -122,16 +122,18 @@
   vertical-align: middle;
 }
 
-.prose table th[align="right"],
-.prose table td[align="right"] {
-  text-align: right;
+/* Analysis table - first column text-left, second column text-left, value column center-aligned */
+.prose table th:nth-child(3),
+.prose table td:nth-child(3) {
+  text-align: center !important;
 }
 
-.prose table th[align="center"],
-.prose table td[align="center"] {
-  text-align: center;
+/* First column alignment */
+.prose table td:first-child {
+  text-align: left;
 }
 
+/* Default text alignment for cells */
 .prose table td {
   padding: 0.75rem 1rem;
   vertical-align: middle;
@@ -140,7 +142,7 @@
   white-space: normal;
 }
 
-/* Allow text wrap for commentary cells but keep numbers aligned */
+/* Allow text wrap for commentary cells */
 .prose table td:last-child:not([align="right"]) {
   white-space: normal;
   text-align: left;
@@ -157,31 +159,17 @@
   margin: 2rem 0;
 }
 
-/* Special styling for competitor comparison tables */
-.prose h4 + p + .table-container table,
-.prose h3 + p + .table-container table {
-  table-layout: fixed;
+/* Specific competitor comparison table styling */
+.prose h4[id="comparison-section"] + p + .table-container table td,
+.prose h4:contains("Competitor") + p + .table-container table td,
+.prose h3:contains("Competitor") + p + .table-container table td {
+  text-align: center !important;
 }
 
-.prose h4 + p + .table-container table th,
-.prose h3 + p + .table-container table th {
-  text-align: center;
-}
-
-.prose h4 + p + .table-container table td,
-.prose h3 + p + .table-container table td {
-  text-align: center;
-}
-
-.prose h4 + p + .table-container table td:first-child,
-.prose h3 + p + .table-container table td:first-child {
-  text-align: left;
-}
-
-/* Numeric values should be center-aligned in comparison tables */
-.prose h4 + p + .table-container table td[align="right"],
-.prose h3 + p + .table-container table td[align="right"] {
-  text-align: center;
+.prose h4[id="comparison-section"] + p + .table-container table td:first-child,
+.prose h4:contains("Competitor") + p + .table-container table td:first-child,
+.prose h3:contains("Competitor") + p + .table-container table td:first-child {
+  text-align: center !important;
 }
 
 /* Make sure tables scroll horizontally on mobile */
@@ -193,10 +181,5 @@
   .prose table th,
   .prose table td {
     padding: 0.5rem;
-  }
-  
-  /* Highlight data cells for better readability */
-  .prose table td[align="right"] {
-    font-weight: 500;
   }
 }

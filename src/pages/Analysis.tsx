@@ -53,6 +53,12 @@ const Analysis = () => {
     }
   }, [isError, error]);
 
+  // Function to detect if we're in a comparison table based on headers
+  const isComparisonTable = (headers: string[]): boolean => {
+    const comparisonHeaders = ['Company', 'P/E Ratio', 'P/S Ratio', 'Profit Margin', 'Market Cap'];
+    return headers.some(header => comparisonHeaders.includes(header));
+  };
+
   return (
     <div className="min-h-screen flex flex-col p-6 bg-white">
       <div className="flex justify-between items-center mb-8">
@@ -101,50 +107,57 @@ const Analysis = () => {
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    // Format table cells according to content type
-                    td: ({node, children, ...props}) => {
-                      // Check if this is the last column (Commentary/Assessment)
-                      const isLastColumn = props.className?.includes('last-column') || 
-                                          props.colSpan === 1 && props.style?.width === '50%';
-                      
-                      // Right-align cells that contain numbers (except in comparison tables)
-                      const isNumeric = /^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?%?$/.test(
-                        String(children).trim()
+                    // Global table handler that tracks table headers
+                    table: ({node, children, ...props}) => {
+                      // Store the headers to determine table type
+                      return (
+                        <div className="table-container">
+                          <table {...props}>{children}</table>
+                        </div>
                       );
+                    },
+                    // Header handler to identify table type
+                    th: ({node, children, ...props}) => {
+                      return <th {...props}>{children}</th>;
+                    },
+                    // Cell handler for proper alignment
+                    td: ({node, children, ...props}) => {
+                      const content = String(children);
                       
-                      if (isNumeric && !isLastColumn) {
-                        return <td align="right" {...props}>{children}</td>;
+                      // Detect if we're in the value column (typically 3rd column in analysis tables)
+                      // In competitor comparison tables, all cells should be centered
+                      if (node.position?.start.column === 3 || 
+                          content.includes('TSLA') || 
+                          content.includes('GM') || 
+                          content.includes('F') ||
+                          content.includes('NIO') ||
+                          content.includes('RIVN')) {
+                        
+                        // Handle comparison table company names
+                        if (content.includes('TSLA') || 
+                            content.includes('GM') || 
+                            content.includes('F') ||
+                            content.includes('NIO') ||
+                            content.includes('RIVN')) {
+                          return <td style={{ textAlign: 'center' }} {...props}>{children}</td>;
+                        }
+                        
+                        // Value column in analysis tables
+                        return <td style={{ textAlign: 'center' }} {...props}>{children}</td>;
                       }
                       
-                      // For commentary cells, use normal text flow
-                      if (isLastColumn || String(children).length > 40) {
-                        return <td style={{ whiteSpace: 'normal', wordWrap: 'break-word' }} {...props}>{children}</td>;
+                      // Handle the commentary column (usually last column)
+                      const cellPosition = node.position?.start.column || 0;
+                      if (cellPosition === 4 || String(children).length > 40) {
+                        return <td style={{ textAlign: 'left', whiteSpace: 'normal' }} {...props}>{children}</td>;
                       }
                       
+                      // Default cell handling
                       return <td {...props}>{children}</td>;
                     },
-                    // Center align table headers
-                    th: ({node, children, ...props}) => {
-                      // Check if it looks like a comparison table header
-                      const content = String(children).trim();
-                      const isComparisonHeader = ['Company', 'P/E Ratio', 'P/S Ratio', 'Profit Margin', 'Market Cap'].includes(content) ||
-                                               content.includes('Ratio') || content.includes('Margin') || content.includes('Cap');
-                      
-                      if (isComparisonHeader) {
-                        return <th align="center" {...props}>{children}</th>;
-                      }
-                      
-                      return <th align="center" {...props}>{children}</th>;
-                    },
-                    // Customize table rendering
-                    table: ({node, ...props}) => (
-                      <div className="table-container">
-                        <table {...props} />
-                      </div>
-                    ),
-                    // Add special handling for comparison tables that appear after headings
+                    // Special handling for comparison section
                     h4: ({node, children, ...props}) => {
-                      const content = String(children).trim();
+                      const content = String(children);
                       if (content.includes('Competitor Comparison') || content.includes('Comparison')) {
                         return <h4 id="comparison-section" {...props}>{children}</h4>;
                       }
