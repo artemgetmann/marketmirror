@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -98,4 +99,75 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Financial table styles */
+.financial-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.financial-table th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.financial-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.financial-table tbody tr:nth-child(odd) {
+  background-color: #f8fafc;
+}
+
+.financial-table tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+/* Ensure responsiveness */
+@media (max-width: 768px) {
+  .financial-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* Improve typography in the prose container */
+.prose table {
+  margin-top: 1.5em;
+  margin-bottom: 1.5em;
+}
+
+.prose h1, .prose h2, .prose h3 {
+  color: #111827;
+  font-weight: 600;
+  margin-top: 2em;
+  margin-bottom: 1em;
+}
+
+.prose p {
+  margin-top: 1.25em;
+  margin-bottom: 1.25em;
+}
+
+/* Ensure numbers are right-aligned */
+.financial-table td:nth-child(2),
+.financial-table td:nth-child(3),
+.financial-table td:nth-child(4),
+.financial-table td:nth-child(5) {
+  text-align: right;
+}
+
+.financial-table th:nth-child(2),
+.financial-table th:nth-child(3),
+.financial-table th:nth-child(4),
+.financial-table th:nth-child(5) {
+  text-align: right;
 }

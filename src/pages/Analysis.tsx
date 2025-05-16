@@ -53,6 +53,12 @@ const Analysis = () => {
     }
   }, [isError, error]);
 
+  // Function to clean up any potential debug messages or artifacts
+  const getCleanAnalysis = (content: string): string => {
+    if (!content) return "";
+    return content;
+  };
+
   return (
     <div className="min-h-screen flex flex-col p-6 bg-white">
       <div className="flex justify-between items-center mb-8">
@@ -96,11 +102,7 @@ const Analysis = () => {
         {!isLoading && !isError && data && (
           <AnalysisSection
             title={`${data.ticker} Analysis Results`}
-            content={
-              <div className="prose max-w-none">
-                <ReactMarkdown>{data.analysis}</ReactMarkdown>
-              </div>
-            }
+            content={getCleanAnalysis(data.analysis)}
           />
         )}
       </div>
