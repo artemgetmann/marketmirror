@@ -17,16 +17,16 @@ export const AnalysisSection: React.FC<AnalysisSectionProps> = ({ title, content
         <div className="prose max-w-none">
           <ReactMarkdown
             components={{
-              table: ({ node, ...props }) => <MarkdownTable {...props} />,
-              thead: ({ node, ...props }) => <>{props.children}</>,
-              tbody: ({ node, ...props }) => <>{props.children}</>,
-              tr: ({ node, ...props }) => {
-                // Check if this row is inside a thead to determine if it's a header
-                const isHeader = node?.parent?.type === 'tableHead';
+              table: (props) => <MarkdownTable>{props.children}</MarkdownTable>,
+              thead: (props) => <>{props.children}</>,
+              tbody: (props) => <>{props.children}</>,
+              tr: (props) => {
+                // Check if this row is inside a thead by examining the parent property of the node
+                const isHeader = props.node?.parentNode?.tagName === 'THEAD';
                 return <MarkdownTableRow isHeader={isHeader}>{props.children}</MarkdownTableRow>;
               },
-              th: ({ node, ...props }) => <>{props.children}</>,
-              td: ({ node, ...props }) => <>{props.children}</>,
+              th: (props) => <>{props.children}</>,
+              td: (props) => <>{props.children}</>,
             }}
           >
             {content}

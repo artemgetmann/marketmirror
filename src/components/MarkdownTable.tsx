@@ -13,25 +13,24 @@ import { cn } from "@/lib/utils";
 export interface MarkdownTableProps {
   children: React.ReactNode;
   className?: string;
-  [key: string]: any; // Allow additional props
 }
 
-export const MarkdownTable = ({ children, className, ...props }: MarkdownTableProps) => {
+export const MarkdownTable: React.FC<MarkdownTableProps> = ({ children, className }) => {
   // Process the children to find the table data
   const childrenArray = React.Children.toArray(children);
   
   // Extract header and body elements
   const headerRow = childrenArray.find(
-    (child) => React.isValidElement(child) && child.props?.node?.type === 'tableHead'
+    (child) => React.isValidElement(child) && (child as React.ReactElement).props?.node?.parentNode?.tagName === 'THEAD'
   );
   
   const bodyRows = childrenArray.filter(
-    (child) => React.isValidElement(child) && child.props?.node?.type === 'tableBody'
+    (child) => React.isValidElement(child) && (child as React.ReactElement).props?.node?.parentNode?.tagName !== 'THEAD'
   );
 
   return (
     <div className="overflow-x-auto my-4">
-      <Table className={cn("financial-table", className)} {...props}>
+      <Table className={cn("financial-table", className)}>
         {headerRow && (
           <TableHeader>
             {React.cloneElement(headerRow as React.ReactElement)}
@@ -51,18 +50,17 @@ export interface MarkdownTableRowProps {
   children: React.ReactNode;
   isHeader?: boolean;
   className?: string;
-  [key: string]: any; // Allow additional props
 }
 
-export const MarkdownTableRow = ({ children, isHeader, className, ...props }: MarkdownTableRowProps) => {
+export const MarkdownTableRow: React.FC<MarkdownTableRowProps> = ({ children, isHeader, className }) => {
   return (
-    <TableRow className={cn(isHeader ? "bg-muted" : undefined, className)} {...props}>
+    <TableRow className={cn(isHeader ? "bg-muted" : undefined, className)}>
       {React.Children.map(children, (cell, index) => {
         if (!React.isValidElement(cell)) return null;
         
         // Determine if content is likely numeric for alignment
         const cellText = cell.props?.children?.[0]?.props?.children || "";
-        const isNumeric = !isNaN(parseFloat(cellText)) && isFinite(cellText as any);
+        const isNumeric = !isNaN(parseFloat(cellText as string)) && isFinite(cellText as any);
         
         return isHeader ? (
           <TableHead 
