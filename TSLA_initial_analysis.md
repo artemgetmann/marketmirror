@@ -1,18 +1,18 @@
-| Metric                   | Value       | Commentary / Assessment                                                                                           |
-|--------------------------|-------------|------------------------------------------------------------------------------------------------------------------|
-| **P/E (TTM)**            | 189.56      | Extremely high; indicates high growth expectations, much higher than typical auto or tech sector averages.        |
-| **P/S**                  | 11.58       | Elevated; suggests premium pricing relative to sales, reflecting market optimism about future growth.             |
-| **PEG Ratio**            | 9.21        | Well above 1; implies the price is high relative to expected earnings growth, could signal overvaluation.         |
-| **P/FCF**                | 163.53      | Very high; market values future free cash flow substantially, which can be risky if growth slows.                 |
-| **P/B**                  | 14.87       | Far above industry norms (typically <3); indicates investors pay a large premium over book value.                 |
-| **ROE**                  | 9.16%       | Moderate; decent but not exceptional, especially given high valuation multiples.                                  |
-| **ROA**                  | 5.43%       | Modest; suggests moderate efficiency in using assets to generate profit.                                          |
-| **Profit Margin**        | 6.65%       | Lower than many tech companies but decent for auto industry; room for improvement.                                |
-| **Sales Growth (5Y)**    | 34.02%      | Strong; demonstrates robust historical revenue growth, supporting high valuation to some extent.                  |
-| **Current Ratio**        | 2.00        | Healthy; indicates strong short-term liquidity and ability to cover liabilities.                                  |
-| **Debt/Equity**          | 0.18        | Low; reflects conservative leverage, less financial risk compared to peers.                                       |
-| **Insider Ownership**    | 12.90%      | High; aligns management interests with shareholders, generally positive.                                          |
-| **Insider Transactions** | -0.25%      | Slight net selling; not a major red flag but worth monitoring for trend changes.                                  |
-| **Dividend TTM**         | -           | No dividend; typical for growth-focused companies reinvesting cash.                                               |
-| **Market Cap**           | 1108.70B    | Extremely large; reflects its status as a mega-cap company and industry leader.                                   |
-| **Option/Short**         | Yes / Yes   | Heavily traded in options and shorted; indicates significant market interest and volatility.                      |
+| **Category**           | **Metric**           | **Current Value** | **Commentary / Assessment**                                                                                                                                         |
+|------------------------|----------------------|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Valuation & Growth     | P/E (TTM)            | 188.53            | Extremely high; indicates very high growth expectations priced in, well above auto industry average (typically <20).                                                |
+|                        | P/S                  | 11.52             | High; suggests the stock is expensive relative to sales, common for high-growth tech-oriented firms, but above most automakers.                                    |
+|                        | PEG Ratio            | 9.41              | Very high; ideally <1-2 for growth stocks, suggests valuation may not be justified by expected earnings growth.                                                     |
+|                        | P/FCF                | 162.64            | Very high; implies investors are paying a premium for future cash flows, above most industry peers.                                                                 |
+|                        | P/B                  | 14.79             | High; indicates the stock trades far above its book value, reflecting strong investor confidence but also potential overvaluation.                                  |
+| Profitability          | ROE                  | 9.16%             | Moderate; generally good, but below many tech peers and some auto companies. Indicates moderate efficiency in generating returns on equity.                        |
+|                        | ROA                  | 5.43%             | Modest; below high-performing companies, but acceptable for capital-intensive industries like automotive manufacturing.                                             |
+|                        | Profit Margin        | 6.65%             | Decent for auto sector (often 3-7%), but lower than many tech companies. Reflects profitability after all expenses.                                                |
+|                        | Sales Growth (5Y)    | 34.02%            | Excellent; very strong historical sales growth, well above industry average, supports growth-focused valuation.                                                     |
+| Liquidity & Leverage   | Current Ratio        | 2.00              | Strong; indicates good short-term liquidity, above the standard threshold of 1.5 for safety.                                                                       |
+|                        | Debt/Equity          | 0.18              | Low; suggests conservative leverage, less financial risk compared to peers with higher debt loads.                                                                 |
+| Qualitative Factors    | Insider Ownership    | 12.90%            | High; aligns management with shareholder interests, considered positive.                                                                                            |
+|                        | Insider Transactions | -0.25%            | Slight net selling; could indicate some insider caution but not a major red flag at this level.                                                                    |
+|                        | Dividend TTM         | -                 | No dividend; typical for high-growth companies reinvesting profits into expansion.                                                                                  |
+|                        | Market Cap           | 1102.69B          | Extremely large; reflects TSLA’s status as a mega-cap company and industry leader.                                                                                 |
+|                        | Option/Short         | Yes / Yes         | Actively traded options and notable short interest; stock is liquid but also subject to volatility and speculation.                                                |

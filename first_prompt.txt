@@ -1,11 +1,11 @@
 As a financial analyst, please provide an analysis table for TSLA using the following Finviz data:
 
 Valuation & Growth:
-- P/E (TTM): 189.56
-- P/S: 11.58
-- PEG Ratio: 9.21
-- P/FCF: 163.53
-- P/B: 14.87
+- P/E (TTM): 188.53
+- P/S: 11.52
+- PEG Ratio: 9.41
+- P/FCF: 162.64
+- P/B: 14.79
 
 Profitability:
 - ROE: 9.16%
@@ -21,7 +21,7 @@ Qualitative Factors:
 - Insider Ownership: 12.90%
 - Insider Transactions: -0.25%
 - Dividend TTM: -
-- Market Cap: 1108.70B
+- Market Cap: 1102.69B
 - Option/Short: Yes / Yes
 
 Please create ONLY an analysis table in markdown format - do NOT wrap the table in markdown code blocks (no triple backticks). The table should list each metric alongside its current value from the data. For each metric, include a brief commentary or qualitative assessment that explains what this metric indicates about the company's financial position, maybe mention what is a good/ideal ratio for this company or other companies in the industry. Do not provide an overall recommendation yet.

@@ -48,16 +48,16 @@ app.post('/analyze', (req, res) => {
     return res.status(400).json({ error: 'Ticker symbol is required' });
   }
   
-  // Check API key
+  // Check API key before executing script
   if (!process.env.OPENAI_API_KEY) {
     return res.status(500).json({ error: 'API key not configured on server' });
   }
   
   console.log(`Analyzing ticker: ${ticker}`);
   
-  // Execute script with sufficient timeout
+  // Execute MarketMirror.sh with the provided ticker and pass environment variables
   exec(`./MarketMirror.sh ${ticker}`, { 
-    timeout: 180000, // 3 minutes
+    timeout: 60000, // Increased timeout to 60 seconds
     env: {
       ...process.env,
       OPENAI_API_KEY: process.env.OPENAI_API_KEY
@@ -68,13 +68,18 @@ app.post('/analyze', (req, res) => {
       return res.status(500).json({ error: error.message });
     }
     
+    // Log stderr to server logs but don't send to client
+    if (stderr) {
+      console.log(`Script debug output (stderr): ${stderr}`);
+    }
+    
     console.log(`Analysis complete for ${ticker}`);
     
-    // Return the analysis
+    // Only stdout contains the clean final analysis
     return res.json({ 
       success: true,
       ticker: ticker,
-      analysis: stdout
+      analysis: stdout.trim() // Trim to remove any extra whitespace
     });
   });
 });
