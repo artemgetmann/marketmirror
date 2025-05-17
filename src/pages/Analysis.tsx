@@ -97,44 +97,8 @@ const Analysis = () => {
           <AnalysisSection
             title={`${data.ticker} Analysis Results`}
             content={
-              <div className="prose max-w-none">
-                <ReactMarkdown 
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    // Apply minimal styling for tables
-                    table: () => (
-                      <div className="table-container">
-                        <table className="w-full border-collapse my-8" />
-                      </div>
-                    ),
-                    thead: (props) => <thead className="bg-gray-50 border-b-2 border-gray-200" {...props} />,
-                    th: (props) => <th className="text-center p-3 font-semibold" {...props} />,
-                    td: ({node, children, ...props}) => {
-                      const content = String(children);
-                      // Basic alignment logic - numbers and short values centered, text left-aligned
-                      const isNumeric = /^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?%?$/.test(content.trim()) ||
-                                       content.includes('%') ||
-                                       content.includes('/') ||
-                                       content.includes('B') ||
-                                       content === 'N/A' ||
-                                       content === '-';
-                      
-                      const isShortText = content.length < 20;
-                      const style = {
-                        textAlign: (isNumeric || isShortText ? 'center' : 'left') as 'center' | 'left',
-                        padding: '0.75rem 1rem',
-                        borderBottom: '1px solid #e5e5e5'
-                      };
-                      
-                      return <td style={style} {...props}>{children}</td>;
-                    },
-                    tr: (props) => {
-                      const rowProps = props as any;
-                      const isEven = rowProps.index ? rowProps.index % 2 === 0 : false;
-                      return <tr className={isEven ? 'bg-gray-50' : 'bg-white'} {...props} />;
-                    }
-                  }}
-                >
+              <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {data.analysis}
                 </ReactMarkdown>
               </div>

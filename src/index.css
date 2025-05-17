@@ -100,68 +100,66 @@
   }
 }
 
-/* Financial Tables Styling */
+/* Obsidian-like styling for tables */
 .prose table {
-  width: 100%;
-  margin: 2rem 0;
   border-collapse: collapse;
-  font-size: 0.9rem;
-  line-height: 1.5;
+  margin: 20px 0;
+  font-size: 0.9em;
+  width: 100%;
 }
 
 .prose table thead {
-  background-color: #f8f8f8;
-  border-bottom: 2px solid #e5e5e5;
+  background-color: #f3f3f3;
 }
 
 .prose table th {
-  padding: 0.75rem 1rem;
-  vertical-align: middle;
-  border-bottom: 1px solid #e5e5e5;
-  text-align: center;
   font-weight: 600;
+  text-align: center;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 .prose table td {
-  padding: 0.75rem 1rem;
-  vertical-align: middle;
-  border-bottom: 1px solid #e5e5e5;
-}
-
-/* Make numeric values center-aligned by default */
-.prose table td:nth-child(3) {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
   text-align: center;
-}
-
-/* Company tickers and short values */
-.prose table td:first-child {
-  text-align: center;
-}
-
-/* Longer descriptive text left-aligned */
-.prose table td:last-child {
-  text-align: left; 
 }
 
 .prose table tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: #f8f8f8;
 }
 
-/* Table container for better mobile responsiveness */
-.prose .table-container {
-  width: 100%;
-  overflow-x: auto;
-  margin: 2rem 0;
+.prose table tr:hover {
+  background-color: #f1f5f9;
 }
 
-/* Make sure tables scroll horizontally on mobile */
-@media (max-width: 768px) {
+/* Let Tailwind handle the prose styling */
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  color: #000;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose ul, .prose ol {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  padding-left: 1.5em;
+}
+
+.prose p {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  line-height: 1.7;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
   .prose table {
-    font-size: 0.8rem;
+    font-size: 0.8em;
   }
   
   .prose table th,
   .prose table td {
-    padding: 0.5rem;
+    padding: 8px;
   }
 }
