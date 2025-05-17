@@ -93,41 +93,164 @@ const Analysis = () => {
       // Clone the analysis content for styling
       const element = analysisRef.current.cloneNode(true) as HTMLElement;
       
+      // Clean up any elements that might cause issues
+      const elementsToRemove = element.querySelectorAll('.toastify, .toast');
+      elementsToRemove.forEach(el => el.parentNode?.removeChild(el));
+      
       // Add PDF-specific styling
       const style = document.createElement('style');
       style.innerHTML = `
         body {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-family: 'Helvetica', 'Arial', sans-serif;
           padding: 20px;
+          color: #333;
+          line-height: 1.5;
+        }
+        .page-header {
+          text-align: center;
+          margin-bottom: 20px;
+          border-bottom: 1px solid #ddd;
+          padding-bottom: 10px;
+        }
+        h1, h2, h3, h4 {
+          margin-top: 20px;
+          margin-bottom: 10px;
+          page-break-after: avoid;
+          page-break-inside: avoid;
+        }
+        p {
+          margin-bottom: 10px;
         }
         table {
           width: 100%;
           border-collapse: collapse;
           margin: 20px 0;
-          font-size: 12px;
+          font-size: 11px;
+          page-break-inside: avoid;
         }
-        table th, table td {
-          border: 1px solid #e2e8f0;
-          padding: 8px;
-          text-align: center;
+        table, th, td {
+          border: 1px solid #ddd;
         }
         table th {
           background-color: #f3f3f3;
+          font-weight: bold;
+          text-align: center;
+          padding: 8px;
         }
-        h1, h2, h3, h4 {
-          margin-top: 20px;
-          margin-bottom: 10px;
+        table td {
+          padding: 8px;
+          text-align: center;
+        }
+        table tr:nth-child(even) {
+          background-color: #f9f9f9;
+        }
+        /* Keep sections together when possible */
+        section {
+          page-break-inside: avoid;
+        }
+        ul, ol {
+          page-break-inside: avoid;
+        }
+        li {
+          margin-bottom: 5px;
+        }
+        a {
+          color: #0066cc;
+          text-decoration: none;
+        }
+        /* Fix content flow */
+        .pdf-content {
+          display: flex;
+          flex-direction: column;
+        }
+        /* Ensure proper spacing without excessive page breaks */
+        .pdf-section {
+          margin-bottom: 20px;
         }
       `;
       element.appendChild(style);
       
+      // Create a header for PDF
+      const header = document.createElement('div');
+      header.className = 'page-header';
+      header.innerHTML = `
+        <h1 style="margin:0;padding:0;font-size:24px;">${ticker.toUpperCase()} Financial Analysis</h1>
+        <p style="margin:5px 0;color:#666;font-size:14px;">Generated on ${new Date().toLocaleDateString()}</p>
+      `;
+      element.prepend(header);
+      
+      // Create a wrapper for all content
+      const contentWrapper = document.createElement('div');
+      contentWrapper.className = 'pdf-content';
+      
+      // Process and reorganize content for PDF
+      const headings = element.querySelectorAll('h2, h3, h4');
+      const sections: HTMLElement[] = [];
+      
+      headings.forEach((heading, index) => {
+        const section = document.createElement('div');
+        section.className = 'pdf-section';
+        section.appendChild(heading.cloneNode(true));
+        
+        // Collect all elements until the next heading
+        let nextNode = heading.nextElementSibling;
+        while (nextNode && !['H2', 'H3', 'H4'].includes(nextNode.tagName)) {
+          section.appendChild(nextNode.cloneNode(true));
+          nextNode = nextNode.nextElementSibling;
+        }
+        
+        sections.push(section);
+      });
+      
+      // Add sections to wrapper
+      sections.forEach(section => {
+        contentWrapper.appendChild(section);
+      });
+      
+      // Process tables for better formatting
+      const tables = contentWrapper.querySelectorAll('table');
+      tables.forEach(table => {
+        table.classList.add('pdf-table');
+        
+        // Ensure table cells have proper alignment
+        const cells = table.querySelectorAll('td');
+        cells.forEach(cell => {
+          const text = cell.textContent || '';
+          if (!isNaN(Number(text.trim())) || text.includes('%')) {
+            cell.style.textAlign = 'right';
+          }
+        });
+      });
+      
+      // Replace existing content with reorganized content
+      const contentContainer = element.querySelector('.prose') || element;
+      while (contentContainer.firstChild) {
+        contentContainer.removeChild(contentContainer.firstChild);
+      }
+      contentContainer.appendChild(contentWrapper);
+      
       // Configure PDF options
       const options = {
-        margin: [10, 10],
+        margin: [15, 15, 15, 15], // top, right, bottom, left
         filename: `${ticker.toUpperCase()}_Analysis.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          logging: false,
+          allowTaint: true,
+          removeContainer: true
+        },
+        jsPDF: { 
+          unit: 'mm', 
+          format: 'a4', 
+          orientation: 'portrait',
+          compress: true 
+        },
+        pagebreak: { 
+          mode: ['avoid-all', 'css', 'legacy'],
+          avoid: ['.pdf-section', 'table', 'img']
+        }
       };
       
       // Generate PDF
