@@ -72,6 +72,22 @@ const isFinancialValue = (content: string): boolean => {
          content.endsWith('B');        // Values ending with B (billion)
 };
 
+// Detect if text is a financial metric label (P/E, P/S, P/B, etc.)
+const isFinancialMetric = (text: string): boolean => {
+  const metrics = ['P/E', 'P/S', 'P/B', 'P/FCF', 'PEG Ratio', 'ROE', 'ROA', 'Profit Margin', 'Market Cap', 'Option/Short', 'Debt/Equity', 'Dividend TTM', 'Insider'];
+  const normalizedText = text.trim().toUpperCase();
+  return metrics.some(metric => normalizedText.includes(metric.toUpperCase())) ||
+         normalizedText.includes('TTM') ||
+         normalizedText.includes('RATIO');
+};
+
+// Detect if text is a category label (Valuation & Growth, Profitability, etc.)
+const isCategoryLabel = (text: string): boolean => {
+  const categories = ['Valuation & Growth', 'Profitability', 'Liquidity & Leverage', 'Qualitative Factors'];
+  const normalizedText = text.trim();
+  return categories.some(category => normalizedText === category);
+};
+
 // Detect table type from headers
 const detectTableType = (headers: React.ReactNode[]): 'analysis' | 'comparison' | 'regular' => {
   const headerTexts = headers.map(h => String(h));
@@ -272,10 +288,22 @@ const Analysis = () => {
                         
                         // Analysis table formatting
                         if (tableType === 'analysis') {
-                          // Category/Metric column (first two columns) - left aligned
-                          if (isFirstColumn || cellIndex === 1) {
+                          // Category column (first column) - center aligned for category labels
+                          if (isFirstColumn && isCategoryLabel(content)) {
+                            style.textAlign = 'center';
+                          }
+                          // Category column (first column) - left aligned for non-category labels
+                          else if (isFirstColumn) {
                             style.textAlign = 'left';
-                          } 
+                          }
+                          // Metric column (second column) - center aligned for financial metrics 
+                          else if (cellIndex === 1 && isFinancialMetric(content)) {
+                            style.textAlign = 'center';
+                          }
+                          // Metric column (second column) - left aligned for non-financial metrics
+                          else if (cellIndex === 1) {
+                            style.textAlign = 'center';
+                          }
                           // Value column (usually 3rd column) - center aligned
                           else if (cellIndex === 2 || isNumeric(content) || content === '-' || content.includes('/') || isFinancialValue(content)) {
                             style.textAlign = 'center';
