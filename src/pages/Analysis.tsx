@@ -49,13 +49,27 @@ const fetchAnalysis = async (ticker: string, options?: FetchAnalysisOptions): Pr
 
 // Helper function to determine if content is a number, percentage, or ratio
 const isNumeric = (text: string): boolean => {
-  return /^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?%?$/.test(text.trim());
+  return /^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?%?$/.test(text.trim()) || 
+         /^\d+\.\d+[BMK]?$/.test(text.trim()) ||  // Handle values like 1125.72B
+         text.trim() === 'N/A' || 
+         text.trim() === '-';
 };
 
 // Detect if a text content is a company ticker
 const isCompanyTicker = (text: string): boolean => {
   const tickers = ['TSLA', 'GM', 'F', 'NIO', 'RIVN', 'AAPL', 'MSFT', 'GOOG', 'AMZN'];
-  return tickers.some(ticker => text.trim() === ticker);
+  const normalizedText = text.trim().toUpperCase();
+  return tickers.some(ticker => normalizedText === ticker);
+};
+
+// Detect if this is a Market Cap or financial value that needs special handling
+const isFinancialValue = (content: string): boolean => {
+  return content.includes('Market Cap') || 
+         content.includes('Option/Short') || 
+         content.includes('Yes / Yes') || 
+         content.includes('Yes/Yes') ||
+         /\d+\.\d+B/.test(content) ||  // Values like 1125.72B
+         content.endsWith('B');        // Values ending with B (billion)
 };
 
 // Detect table type from headers
@@ -263,7 +277,7 @@ const Analysis = () => {
                             style.textAlign = 'left';
                           } 
                           // Value column (usually 3rd column) - center aligned
-                          else if (cellIndex === 2 || isNumeric(content) || content === '-' || content.includes('/')) {
+                          else if (cellIndex === 2 || isNumeric(content) || content === '-' || content.includes('/') || isFinancialValue(content)) {
                             style.textAlign = 'center';
                           } 
                           // Commentary/Assessment column - left aligned with text wrapping
@@ -273,12 +287,12 @@ const Analysis = () => {
                         }
                         // Competitor comparison table formatting
                         else if (tableType === 'comparison') {
-                          // Company column (first column) - center aligned
+                          // Company column - always center aligned for both header and company names
                           if (isFirstColumn || isCompanyTicker(content)) {
                             style.textAlign = 'center';
                           } 
                           // All value columns - center aligned
-                          else if (isNumeric(content) || content === '-' || content === 'N/A') {
+                          else if (isNumeric(content) || content === '-' || content === 'N/A' || isFinancialValue(content)) {
                             style.textAlign = 'center';
                           }
                           // Default center alignment for all cells in comparison tables
@@ -288,7 +302,9 @@ const Analysis = () => {
                         }
                         // Regular table - smart alignment based on content
                         else {
-                          if (isNumeric(content) || content === '-' || content === 'N/A') {
+                          if (isCompanyTicker(content)) {
+                            style.textAlign = 'center';
+                          } else if (isNumeric(content) || content === '-' || content === 'N/A' || isFinancialValue(content)) {
                             style.textAlign = 'center';
                           } else if (content.length > 30) {
                             style.textAlign = 'left';
