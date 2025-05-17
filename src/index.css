@@ -107,7 +107,6 @@
   border-collapse: collapse;
   font-size: 0.9rem;
   line-height: 1.5;
-  table-layout: fixed;
 }
 
 .prose table thead {
@@ -115,12 +114,33 @@
   border-bottom: 2px solid #e5e5e5;
 }
 
-.prose table th,
+.prose table th {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #e5e5e5;
+  text-align: center;
+  font-weight: 600;
+}
+
 .prose table td {
   padding: 0.75rem 1rem;
   vertical-align: middle;
   border-bottom: 1px solid #e5e5e5;
-  word-wrap: break-word;
+}
+
+/* Make numeric values center-aligned by default */
+.prose table td:nth-child(3) {
+  text-align: center;
+}
+
+/* Company tickers and short values */
+.prose table td:first-child {
+  text-align: center;
+}
+
+/* Longer descriptive text left-aligned */
+.prose table td:last-child {
+  text-align: left; 
 }
 
 .prose table tr:nth-child(even) {
