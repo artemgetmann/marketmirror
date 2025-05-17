@@ -47,9 +47,43 @@ const fetchAnalysis = async (ticker: string, options?: FetchAnalysisOptions): Pr
   return await response.json();
 };
 
+// Helper function to determine if content is a number, percentage, or ratio
+const isNumeric = (text: string): boolean => {
+  return /^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?%?$/.test(text.trim());
+};
+
+// Detect if a text content is a company ticker
+const isCompanyTicker = (text: string): boolean => {
+  const tickers = ['TSLA', 'GM', 'F', 'NIO', 'RIVN', 'AAPL', 'MSFT', 'GOOG', 'AMZN'];
+  return tickers.some(ticker => text.trim() === ticker);
+};
+
+// Detect table type from headers
+const detectTableType = (headers: React.ReactNode[]): 'analysis' | 'comparison' | 'regular' => {
+  const headerTexts = headers.map(h => String(h));
+  
+  // Check for comparison table
+  if (headerTexts.includes('Company') && 
+      (headerTexts.includes('P/E Ratio') || headerTexts.includes('P/S Ratio') || 
+       headerTexts.includes('Market Cap (B)') || headerTexts.includes('Profit Margin'))) {
+    return 'comparison';
+  }
+  
+  // Check for analysis table
+  if ((headerTexts.includes('Metric') || headerTexts.includes('Value')) && 
+      (headerTexts.includes('Commentary') || headerTexts.includes('Assessment') || 
+       headerTexts.includes('Commentary / Assessment') || headerTexts.includes('Commentary / Qualitative Assessment'))) {
+    return 'analysis';
+  }
+  
+  return 'regular';
+};
+
 const Analysis = () => {
   const { ticker = "" } = useParams<{ ticker: string }>();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // Store table headers to identify table types
+  const [tableHeaders, setTableHeaders] = useState<Record<string, React.ReactNode[]>>({});
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["analysis", ticker],
@@ -91,12 +125,6 @@ const Analysis = () => {
       });
     }
   }, [isError, error]);
-
-  // Function to detect if we're in a comparison table based on headers
-  const isComparisonTable = (headers: string[]): boolean => {
-    const comparisonHeaders = ['Company', 'P/E Ratio', 'P/S Ratio', 'Profit Margin', 'Market Cap'];
-    return headers.some(header => comparisonHeaders.includes(header));
-  };
 
   return (
     <div className="min-h-screen flex flex-col p-6 bg-white">
@@ -147,61 +175,129 @@ const Analysis = () => {
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      // Global table handler that tracks table headers
+                      // Table component with unique ID
                       table: ({node, children, ...props}) => {
-                        // Store the headers to determine table type
+                        const tableId = `table-${Math.random().toString(36).substr(2, 9)}`;
+                        
+                        // Extract and store headers for this table when it renders
+                        useEffect(() => {
+                          // Find headers in the children
+                          const headers: React.ReactNode[] = [];
+                          if (Array.isArray(children) && children.length > 0) {
+                            const thead = children.find((child: any) => child?.props?.node?.tagName === 'thead');
+                            if (thead && thead.props.children) {
+                              const headerRow = Array.isArray(thead.props.children) 
+                                ? thead.props.children[0] 
+                                : thead.props.children;
+                              
+                              if (headerRow && headerRow.props && headerRow.props.children) {
+                                const headerCells = Array.isArray(headerRow.props.children) 
+                                  ? headerRow.props.children 
+                                  : [headerRow.props.children];
+                                
+                                headerCells.forEach((cell: any) => {
+                                  if (cell && cell.props && cell.props.children) {
+                                    headers.push(cell.props.children);
+                                  }
+                                });
+                              }
+                            }
+                          }
+                          
+                          if (headers.length > 0) {
+                            setTableHeaders(prev => ({...prev, [tableId]: headers}));
+                          }
+                        }, []);
+                        
                         return (
                           <div className="table-container">
-                            <table {...props}>{children}</table>
+                            <table data-table-id={tableId} {...props}>{children}</table>
                           </div>
                         );
                       },
-                      // Header handler to identify table type
+                      
+                      // Table header cell
                       th: ({node, children, ...props}) => {
-                        return <th {...props}>{children}</th>;
+                        const content = String(children);
+                        const tableNode = node as any;
+                        const parentNode = tableNode?.parent as any;
+                        const tableId = tableNode?.properties?.['data-table-id'] || 
+                                       parentNode?.properties?.['data-table-id'] || '';
+                        const tableType = tableHeaders[tableId] 
+                          ? detectTableType(tableHeaders[tableId]) 
+                          : 'regular';
+                          
+                        // Default alignment is centered for all headers
+                        const style = { textAlign: 'center' as const, fontWeight: 600 };
+                        
+                        return <th style={style} {...props}>{children}</th>;
                       },
-                      // Cell handler for proper alignment
+                      
+                      // Table data cell with smart alignment
                       td: ({node, children, ...props}) => {
                         const content = String(children);
+                        const tableNode = node as any;
+                        const parentNode = tableNode?.parent as any;
+                        const tableId = tableNode?.properties?.['data-table-id'] || 
+                                       parentNode?.properties?.['data-table-id'] || '';
+                        const tableType = tableHeaders[tableId] 
+                          ? detectTableType(tableHeaders[tableId]) 
+                          : 'regular';
                         
-                        // Detect if we're in the value column (typically 3rd column in analysis tables)
-                        // In competitor comparison tables, all cells should be centered
-                        if (node.position?.start.column === 3 || 
-                            content.includes('TSLA') || 
-                            content.includes('GM') || 
-                            content.includes('F') ||
-                            content.includes('NIO') ||
-                            content.includes('RIVN')) {
-                          
-                          // Handle comparison table company names
-                          if (content.includes('TSLA') || 
-                              content.includes('GM') || 
-                              content.includes('F') ||
-                              content.includes('NIO') ||
-                              content.includes('RIVN')) {
-                            return <td style={{ textAlign: 'center' }} {...props}>{children}</td>;
+                        // Get column index
+                        const parentRow = parentNode;
+                        const cellIndex = parentRow?.children ? Array.from(parentRow.children).indexOf(tableNode) : 0;
+                        const isFirstColumn = cellIndex === 0;
+                        const isLastColumn = parentRow?.children ? cellIndex === Array.from(parentRow.children).length - 1 : false;
+                        
+                        // Default style
+                        let style: React.CSSProperties = { 
+                          whiteSpace: 'normal', 
+                          wordWrap: 'break-word' 
+                        };
+                        
+                        // Analysis table formatting
+                        if (tableType === 'analysis') {
+                          // Category/Metric column (first two columns) - left aligned
+                          if (isFirstColumn || cellIndex === 1) {
+                            style.textAlign = 'left';
+                          } 
+                          // Value column (usually 3rd column) - center aligned
+                          else if (cellIndex === 2 || isNumeric(content) || content === '-' || content.includes('/')) {
+                            style.textAlign = 'center';
+                          } 
+                          // Commentary/Assessment column - left aligned with text wrapping
+                          else if (isLastColumn || content.length > 30) {
+                            style.textAlign = 'left';
                           }
-                          
-                          // Value column in analysis tables
-                          return <td style={{ textAlign: 'center' }} {...props}>{children}</td>;
+                        }
+                        // Competitor comparison table formatting
+                        else if (tableType === 'comparison') {
+                          // Company column (first column) - center aligned
+                          if (isFirstColumn || isCompanyTicker(content)) {
+                            style.textAlign = 'center';
+                          } 
+                          // All value columns - center aligned
+                          else if (isNumeric(content) || content === '-' || content === 'N/A') {
+                            style.textAlign = 'center';
+                          }
+                          // Default center alignment for all cells in comparison tables
+                          else {
+                            style.textAlign = 'center';
+                          }
+                        }
+                        // Regular table - smart alignment based on content
+                        else {
+                          if (isNumeric(content) || content === '-' || content === 'N/A') {
+                            style.textAlign = 'center';
+                          } else if (content.length > 30) {
+                            style.textAlign = 'left';
+                          } else {
+                            style.textAlign = 'left';
+                          }
                         }
                         
-                        // Handle the commentary column (usually last column)
-                        const cellPosition = node.position?.start.column || 0;
-                        if (cellPosition === 4 || String(children).length > 40) {
-                          return <td style={{ textAlign: 'left', whiteSpace: 'normal' }} {...props}>{children}</td>;
-                        }
-                        
-                        // Default cell handling
-                        return <td {...props}>{children}</td>;
-                      },
-                      // Special handling for comparison section
-                      h4: ({node, children, ...props}) => {
-                        const content = String(children);
-                        if (content.includes('Competitor Comparison') || content.includes('Comparison')) {
-                          return <h4 id="comparison-section" {...props}>{children}</h4>;
-                        }
-                        return <h4 {...props}>{children}</h4>;
+                        return <td style={style} {...props}>{children}</td>;
                       }
                     }}
                   >
