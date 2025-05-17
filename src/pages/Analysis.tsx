@@ -48,21 +48,6 @@ const fetchAnalysis = async (ticker: string, options?: FetchAnalysisOptions): Pr
   return await response.json();
 };
 
-// PDF wrapper component - internal use only
-const PDFWrapper = ({ children, ticker }: { children: React.ReactNode, ticker: string }) => {
-  return (
-    <div className="pdf-document" style={{ padding: '20px', fontFamily: 'Helvetica, Arial, sans-serif' }}>
-      <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-        <h1 style={{ fontSize: '24px', margin: '0 0 8px 0' }}>{ticker.toUpperCase()} Financial Analysis</h1>
-        <p style={{ margin: '0', color: '#666' }}>Generated on {new Date().toLocaleDateString()}</p>
-      </div>
-      <div className="pdf-content">
-        {children}
-      </div>
-    </div>
-  );
-};
-
 const Analysis = () => {
   const { ticker = "" } = useParams<{ ticker: string }>();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -105,48 +90,184 @@ const Analysis = () => {
     
     setIsDownloading(true);
     try {
-      // Create a dedicated element for the PDF that includes a header
-      const pdfElement = document.createElement('div');
-      pdfElement.innerHTML = `
-        <style>
-          @media print {
-            .pdf-document { padding: 20px; font-family: Helvetica, Arial, sans-serif; }
-            .pdf-header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; margin: 15px 0; page-break-inside: avoid; }
-            table, th, td { border: 1px solid #ddd; }
-            th { background-color: #f5f5f5; padding: 8px; text-align: left; font-weight: bold; }
-            td { padding: 8px; text-align: left; }
-            td:nth-child(2) { text-align: right; }
-            h2, h3, h4 { margin-top: 20px; page-break-after: avoid; }
-            ul, ol { page-break-inside: avoid; }
-          }
-        </style>
-        <div class="pdf-header">
-          <h1 style="font-size: 24px; margin: 0 0 8px 0;">${ticker.toUpperCase()} Financial Analysis</h1>
-          <p style="margin: 0; color: #666;">Generated on ${new Date().toLocaleDateString()}</p>
-        </div>
-      `;
+      // Clone the analysis content for styling
+      const element = analysisRef.current.cloneNode(true) as HTMLElement;
       
-      // Copy the analysis content
-      const contentCopy = analysisRef.current.querySelector('.prose')?.cloneNode(true);
-      if (contentCopy) {
-        pdfElement.appendChild(contentCopy);
+      // Add PDF-specific styling
+      const style = document.createElement('style');
+      style.innerHTML = `
+        body {
+          font-family: 'Helvetica', 'Arial', sans-serif;
+          padding: 20px;
+          color: #333;
+          line-height: 1.5;
+        }
+        .page-header {
+          text-align: center;
+          margin-bottom: 20px;
+          border-bottom: 1px solid #ddd;
+          padding-bottom: 10px;
+        }
+        h1, h2, h3, h4 {
+          margin-top: 20px;
+          margin-bottom: 10px;
+          page-break-after: avoid;
+          page-break-inside: avoid;
+        }
+        p {
+          margin-bottom: 10px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 20px 0;
+          font-size: 11px;
+          page-break-inside: avoid;
+        }
+        table, th, td {
+          border: 1px solid #ddd;
+        }
+        table th {
+          background-color: #f3f3f3;
+          font-weight: bold;
+          text-align: center;
+          padding: 8px;
+        }
+        table td {
+          padding: 8px;
+          text-align: center;
+        }
+        table tr:nth-child(even) {
+          background-color: #f9f9f9;
+        }
+        /* Keep sections together */
+        section {
+          page-break-inside: avoid;
+        }
+        ul, ol {
+          page-break-inside: avoid;
+        }
+        /* Force page breaks before major sections */
+        h2 {
+          page-break-before: always;
+        }
+        /* But don't break after the first heading */
+        h2:first-of-type {
+          page-break-before: avoid;
+        }
+        li {
+          margin-bottom: 5px;
+        }
+        a {
+          color: #0066cc;
+          text-decoration: none;
+        }
+      `;
+      element.appendChild(style);
+      
+      // Create a header for PDF
+      const header = document.createElement('div');
+      header.className = 'page-header';
+      header.innerHTML = `
+        <h1 style="margin:0;padding:0;font-size:24px;">${ticker.toUpperCase()} Financial Analysis</h1>
+        <p style="margin:5px 0;color:#666;font-size:14px;">Generated on ${new Date().toLocaleDateString()}</p>
+      `;
+      element.prepend(header);
+      
+      // Process tables for better formatting
+      const tables = element.querySelectorAll('table');
+      
+      // Group consecutive tables to prevent breaks between them
+      let tableGroups = [];
+      let currentGroup = [];
+      
+      // First collect tables into groups based on proximity
+      for (let i = 0; i < tables.length; i++) {
+        const table = tables[i];
+        currentGroup.push(table);
+        
+        // Check if this is the last table or if the next element is not a table or has significant content between
+        const nextSibling = table.nextElementSibling;
+        if (i === tables.length - 1 || 
+            !nextSibling || 
+            (nextSibling.tagName !== 'TABLE' && 
+             nextSibling.textContent && 
+             nextSibling.textContent.trim().length > 20)) {
+          
+          // Save this group and start a new one
+          if (currentGroup.length > 0) {
+            tableGroups.push([...currentGroup]);
+            currentGroup = [];
+          }
+        }
       }
+      
+      // Now wrap each group in a single container
+      tableGroups.forEach(group => {
+        if (group.length === 1) {
+          // Single table - simple wrap
+          const table = group[0];
+          // Add class to table for styling
+          table.classList.add('pdf-table');
+          const wrapper = document.createElement('div');
+          wrapper.style.pageBreakInside = 'avoid';
+          wrapper.classList.add('pdf-table-container');
+          table.parentNode?.insertBefore(wrapper, table);
+          wrapper.appendChild(table);
+        } else if (group.length > 1) {
+          // Multiple consecutive tables - wrap together
+          const firstTable = group[0];
+          const wrapper = document.createElement('div');
+          wrapper.style.pageBreakInside = 'avoid';
+          wrapper.classList.add('pdf-table-group');
+          
+          // Insert wrapper before the first table
+          firstTable.parentNode?.insertBefore(wrapper, firstTable);
+          
+          // Move all tables in this group into the wrapper
+          group.forEach(table => {
+            // Add class to table for styling
+            table.classList.add('pdf-table');
+            wrapper.appendChild(table);
+          });
+        }
+      });
+      
+      // Add section wrappers to prevent breaks inside sections
+      const headings = element.querySelectorAll('h2, h3');
+      headings.forEach(heading => {
+        // Create a section wrapper
+        const section = document.createElement('section');
+        
+        // Get all elements until the next heading
+        let current = heading.nextElementSibling;
+        const elementsToWrap = [heading];
+        
+        while (current && !['H2', 'H3'].includes(current.tagName)) {
+          elementsToWrap.push(current);
+          const next = current.nextElementSibling;
+          current = next;
+        }
+        
+        // If we have elements to wrap
+        if (elementsToWrap.length > 1) {
+          heading.parentNode?.insertBefore(section, heading);
+          elementsToWrap.forEach(el => section.appendChild(el));
+        }
+      });
       
       // Configure PDF options
       const options = {
-        margin: 15,
+        margin: [15, 15, 15, 15], // top, right, bottom, left
         filename: `${ticker.toUpperCase()}_Analysis.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
       
       // Generate PDF
-      await html2pdf()
-        .from(pdfElement)
-        .set(options)
-        .save();
+      await html2pdf().from(element).set(options).save();
       
       toast({
         title: "PDF Downloaded",
