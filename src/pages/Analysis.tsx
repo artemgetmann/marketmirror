@@ -123,6 +123,8 @@ const Analysis = () => {
           margin: 20px 0;
           font-size: 11px;
           page-break-inside: avoid;
+          table-layout: fixed;
+          break-inside: avoid;
         }
         table, th, td {
           border: 1px solid #ddd;
@@ -136,6 +138,10 @@ const Analysis = () => {
         table td {
           padding: 8px;
           text-align: center;
+        }
+        table tr {
+          page-break-inside: avoid;
+          break-inside: avoid;
         }
         table tr:nth-child(even) {
           background-color: #f9f9f9;
@@ -177,61 +183,123 @@ const Analysis = () => {
       // Process tables for better formatting
       const tables = element.querySelectorAll('table');
       
-      // Group consecutive tables to prevent breaks between them
-      let tableGroups = [];
-      let currentGroup = [];
-      
-      // First collect tables into groups based on proximity
-      for (let i = 0; i < tables.length; i++) {
-        const table = tables[i];
-        currentGroup.push(table);
+      // First identify adjacent tables and merge their containers
+      if (tables.length > 1) {
+        let currentTable = tables[0];
+        let tableGroups = [];
+        let currentGroup = [currentTable];
         
-        // Check if this is the last table or if the next element is not a table or has significant content between
-        const nextSibling = table.nextElementSibling;
-        if (i === tables.length - 1 || 
-            !nextSibling || 
-            (nextSibling.tagName !== 'TABLE' && 
-             nextSibling.textContent && 
-             nextSibling.textContent.trim().length > 20)) {
+        // Group adjacent tables
+        for (let i = 1; i < tables.length; i++) {
+          const table = tables[i];
+          const prevTable = tables[i-1];
           
-          // Save this group and start a new one
-          if (currentGroup.length > 0) {
+          // Check if tables are adjacent (no significant content between them)
+          let isAdjacent = true;
+          let node = prevTable.nextSibling;
+          
+          while (node && node !== table) {
+            // If there's a significant element between tables, they're not adjacent
+            if (node.nodeType === 1 && 
+                !['BR', 'HR'].includes((node as Element).tagName) && 
+                (node as Element).textContent && 
+                (node as Element).textContent.trim().length > 0) {
+              isAdjacent = false;
+              break;
+            }
+            node = node.nextSibling;
+          }
+          
+          if (isAdjacent) {
+            // Add to current group if adjacent
+            currentGroup.push(table);
+          } else {
+            // Start a new group
             tableGroups.push([...currentGroup]);
-            currentGroup = [];
+            currentGroup = [table];
           }
         }
-      }
-      
-      // Now wrap each group in a single container
-      tableGroups.forEach(group => {
-        if (group.length === 1) {
-          // Single table - simple wrap
-          const table = group[0];
-          // Add class to table for styling
+        
+        // Add the last group
+        if (currentGroup.length > 0) {
+          tableGroups.push(currentGroup);
+        }
+        
+        // Process each group of tables
+        tableGroups.forEach(group => {
+          if (group.length > 1) {
+            // Create one strong container for the entire group
+            const container = document.createElement('div');
+            container.style.pageBreakInside = 'avoid';
+            container.style.breakInside = 'avoid';
+            container.style.display = 'block';
+            container.style.margin = '20px 0';
+            container.dataset.tableGroup = 'true';
+            
+            // Insert container before first table
+            const firstTable = group[0];
+            firstTable.parentNode?.insertBefore(container, firstTable);
+            
+            // Move all tables in the group to this container
+            group.forEach(table => {
+              // Style each table
+              table.classList.add('pdf-table');
+              table.style.pageBreakInside = 'avoid';
+              table.style.breakInside = 'avoid';
+              table.style.marginBottom = '0';
+              table.style.marginTop = '0';
+              
+              // Force rows to stay together
+              const rows = table.querySelectorAll('tr');
+              rows.forEach(row => {
+                row.style.pageBreakInside = 'avoid';
+                row.style.breakInside = 'avoid';
+              });
+              
+              // Move to container
+              container.appendChild(table);
+            });
+          } else if (group.length === 1) {
+            // Single table, apply standard wrapper
+            const table = group[0];
+            table.classList.add('pdf-table');
+            
+            const wrapper = document.createElement('div');
+            wrapper.style.pageBreakInside = 'avoid';
+            wrapper.style.breakInside = 'avoid';
+            wrapper.style.margin = '20px 0';
+            
+            table.parentNode?.insertBefore(wrapper, table);
+            wrapper.appendChild(table);
+            
+            // Force rows to stay together
+            const rows = table.querySelectorAll('tr');
+            rows.forEach(row => {
+              row.style.pageBreakInside = 'avoid';
+              row.style.breakInside = 'avoid';
+            });
+          }
+        });
+      } else {
+        // If only one table, use the original approach
+        tables.forEach(table => {
           table.classList.add('pdf-table');
+          
           const wrapper = document.createElement('div');
           wrapper.style.pageBreakInside = 'avoid';
-          wrapper.classList.add('pdf-table-container');
+          wrapper.style.breakInside = 'avoid';
+          wrapper.style.margin = '20px 0';
+          
           table.parentNode?.insertBefore(wrapper, table);
           wrapper.appendChild(table);
-        } else if (group.length > 1) {
-          // Multiple consecutive tables - wrap together
-          const firstTable = group[0];
-          const wrapper = document.createElement('div');
-          wrapper.style.pageBreakInside = 'avoid';
-          wrapper.classList.add('pdf-table-group');
           
-          // Insert wrapper before the first table
-          firstTable.parentNode?.insertBefore(wrapper, firstTable);
-          
-          // Move all tables in this group into the wrapper
-          group.forEach(table => {
-            // Add class to table for styling
-            table.classList.add('pdf-table');
-            wrapper.appendChild(table);
+          const rows = table.querySelectorAll('tr');
+          rows.forEach(row => {
+            row.style.pageBreakInside = 'avoid';
+            row.style.breakInside = 'avoid';
           });
-        }
-      });
+        });
+      }
       
       // Add section wrappers to prevent breaks inside sections
       const headings = element.querySelectorAll('h2, h3');
@@ -263,7 +331,8 @@ const Analysis = () => {
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+        enableLinks: true
       };
       
       // Generate PDF
