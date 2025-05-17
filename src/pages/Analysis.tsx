@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -7,7 +7,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AnalysisSection } from "@/components/AnalysisSection";
 import Logo from "@/components/Logo";
-import { ChartCandlestick, RefreshCw } from "lucide-react";
+import { ChartCandlestick, RefreshCw, Download } from "lucide-react";
+import html2pdf from 'html2pdf.js';
 import {
   Tooltip,
   TooltipContent,
@@ -50,6 +51,8 @@ const fetchAnalysis = async (ticker: string, options?: FetchAnalysisOptions): Pr
 const Analysis = () => {
   const { ticker = "" } = useParams<{ ticker: string }>();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const analysisRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["analysis", ticker],
@@ -79,6 +82,70 @@ const Analysis = () => {
       });
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!analysisRef.current || isDownloading) return;
+    
+    setIsDownloading(true);
+    try {
+      // Clone the analysis content for styling
+      const element = analysisRef.current.cloneNode(true) as HTMLElement;
+      
+      // Add PDF-specific styling
+      const style = document.createElement('style');
+      style.innerHTML = `
+        body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          padding: 20px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 20px 0;
+          font-size: 12px;
+        }
+        table th, table td {
+          border: 1px solid #e2e8f0;
+          padding: 8px;
+          text-align: center;
+        }
+        table th {
+          background-color: #f3f3f3;
+        }
+        h1, h2, h3, h4 {
+          margin-top: 20px;
+          margin-bottom: 10px;
+        }
+      `;
+      element.appendChild(style);
+      
+      // Configure PDF options
+      const options = {
+        margin: [10, 10],
+        filename: `${ticker.toUpperCase()}_Analysis.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      // Generate PDF
+      await html2pdf().from(element).set(options).save();
+      
+      toast({
+        title: "PDF Downloaded",
+        description: `${ticker.toUpperCase()} analysis saved as PDF.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Download Failed",
+        description: "Could not generate PDF. Please try again.",
+        variant: "destructive",
+      });
+      console.error("PDF generation error:", err);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -134,19 +201,43 @@ const Analysis = () => {
 
         {!isLoading && !isError && data && (
           <div className="relative">
-            <AnalysisSection
-              title={`${data.ticker} Analysis Results`}
-              content={
-                <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {data.analysis}
-                  </ReactMarkdown>
-                </div>
-              }
-            />
+            <div ref={analysisRef}>
+              <AnalysisSection
+                title={`${data.ticker} Analysis Results`}
+                content={
+                  <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {data.analysis}
+                    </ReactMarkdown>
+                  </div>
+                }
+              />
+            </div>
             
-            {/* Refresh Analysis Button */}
-            <div className="flex justify-end mt-6 mb-2">
+            {/* Action Buttons */}
+            <div className="flex justify-end mt-6 mb-2 gap-2">
+              {/* Download PDF Button */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={handleDownloadPDF}
+                      disabled={isDownloading}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <Download className={`h-4 w-4 ${isDownloading ? 'animate-pulse' : ''}`} />
+                      {isDownloading ? "Generating PDF..." : "Download PDF"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Save analysis as PDF document</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              {/* Refresh Analysis Button */}
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
