@@ -48,6 +48,21 @@ const fetchAnalysis = async (ticker: string, options?: FetchAnalysisOptions): Pr
   return await response.json();
 };
 
+// PDF wrapper component - internal use only
+const PDFWrapper = ({ children, ticker }: { children: React.ReactNode, ticker: string }) => {
+  return (
+    <div className="pdf-document" style={{ padding: '20px', fontFamily: 'Helvetica, Arial, sans-serif' }}>
+      <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+        <h1 style={{ fontSize: '24px', margin: '0 0 8px 0' }}>{ticker.toUpperCase()} Financial Analysis</h1>
+        <p style={{ margin: '0', color: '#666' }}>Generated on {new Date().toLocaleDateString()}</p>
+      </div>
+      <div className="pdf-content">
+        {children}
+      </div>
+    </div>
+  );
+};
+
 const Analysis = () => {
   const { ticker = "" } = useParams<{ ticker: string }>();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -90,171 +105,48 @@ const Analysis = () => {
     
     setIsDownloading(true);
     try {
-      // Clone the analysis content for styling
-      const element = analysisRef.current.cloneNode(true) as HTMLElement;
-      
-      // Clean up any elements that might cause issues
-      const elementsToRemove = element.querySelectorAll('.toastify, .toast');
-      elementsToRemove.forEach(el => el.parentNode?.removeChild(el));
-      
-      // Add PDF-specific styling
-      const style = document.createElement('style');
-      style.innerHTML = `
-        body {
-          font-family: 'Helvetica', 'Arial', sans-serif;
-          padding: 20px;
-          color: #333;
-          line-height: 1.5;
-        }
-        .page-header {
-          text-align: center;
-          margin-bottom: 20px;
-          border-bottom: 1px solid #ddd;
-          padding-bottom: 10px;
-        }
-        h1, h2, h3, h4 {
-          margin-top: 20px;
-          margin-bottom: 10px;
-          page-break-after: avoid;
-          page-break-inside: avoid;
-        }
-        p {
-          margin-bottom: 10px;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 20px 0;
-          font-size: 11px;
-          page-break-inside: avoid;
-        }
-        table, th, td {
-          border: 1px solid #ddd;
-        }
-        table th {
-          background-color: #f3f3f3;
-          font-weight: bold;
-          text-align: center;
-          padding: 8px;
-        }
-        table td {
-          padding: 8px;
-          text-align: center;
-        }
-        table tr:nth-child(even) {
-          background-color: #f9f9f9;
-        }
-        /* Keep sections together when possible */
-        section {
-          page-break-inside: avoid;
-        }
-        ul, ol {
-          page-break-inside: avoid;
-        }
-        li {
-          margin-bottom: 5px;
-        }
-        a {
-          color: #0066cc;
-          text-decoration: none;
-        }
-        /* Fix content flow */
-        .pdf-content {
-          display: flex;
-          flex-direction: column;
-        }
-        /* Ensure proper spacing without excessive page breaks */
-        .pdf-section {
-          margin-bottom: 20px;
-        }
-      `;
-      element.appendChild(style);
-      
-      // Create a header for PDF
-      const header = document.createElement('div');
-      header.className = 'page-header';
-      header.innerHTML = `
-        <h1 style="margin:0;padding:0;font-size:24px;">${ticker.toUpperCase()} Financial Analysis</h1>
-        <p style="margin:5px 0;color:#666;font-size:14px;">Generated on ${new Date().toLocaleDateString()}</p>
-      `;
-      element.prepend(header);
-      
-      // Create a wrapper for all content
-      const contentWrapper = document.createElement('div');
-      contentWrapper.className = 'pdf-content';
-      
-      // Process and reorganize content for PDF
-      const headings = element.querySelectorAll('h2, h3, h4');
-      const sections: HTMLElement[] = [];
-      
-      headings.forEach((heading, index) => {
-        const section = document.createElement('div');
-        section.className = 'pdf-section';
-        section.appendChild(heading.cloneNode(true));
-        
-        // Collect all elements until the next heading
-        let nextNode = heading.nextElementSibling;
-        while (nextNode && !['H2', 'H3', 'H4'].includes(nextNode.tagName)) {
-          section.appendChild(nextNode.cloneNode(true));
-          nextNode = nextNode.nextElementSibling;
-        }
-        
-        sections.push(section);
-      });
-      
-      // Add sections to wrapper
-      sections.forEach(section => {
-        contentWrapper.appendChild(section);
-      });
-      
-      // Process tables for better formatting
-      const tables = contentWrapper.querySelectorAll('table');
-      tables.forEach(table => {
-        table.classList.add('pdf-table');
-        
-        // Ensure table cells have proper alignment
-        const cells = table.querySelectorAll('td');
-        cells.forEach(cell => {
-          const text = cell.textContent || '';
-          if (!isNaN(Number(text.trim())) || text.includes('%')) {
-            cell.style.textAlign = 'right';
+      // Create a dedicated element for the PDF that includes a header
+      const pdfElement = document.createElement('div');
+      pdfElement.innerHTML = `
+        <style>
+          @media print {
+            .pdf-document { padding: 20px; font-family: Helvetica, Arial, sans-serif; }
+            .pdf-header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; margin: 15px 0; page-break-inside: avoid; }
+            table, th, td { border: 1px solid #ddd; }
+            th { background-color: #f5f5f5; padding: 8px; text-align: left; font-weight: bold; }
+            td { padding: 8px; text-align: left; }
+            td:nth-child(2) { text-align: right; }
+            h2, h3, h4 { margin-top: 20px; page-break-after: avoid; }
+            ul, ol { page-break-inside: avoid; }
           }
-        });
-      });
+        </style>
+        <div class="pdf-header">
+          <h1 style="font-size: 24px; margin: 0 0 8px 0;">${ticker.toUpperCase()} Financial Analysis</h1>
+          <p style="margin: 0; color: #666;">Generated on ${new Date().toLocaleDateString()}</p>
+        </div>
+      `;
       
-      // Replace existing content with reorganized content
-      const contentContainer = element.querySelector('.prose') || element;
-      while (contentContainer.firstChild) {
-        contentContainer.removeChild(contentContainer.firstChild);
+      // Copy the analysis content
+      const contentCopy = analysisRef.current.querySelector('.prose')?.cloneNode(true);
+      if (contentCopy) {
+        pdfElement.appendChild(contentCopy);
       }
-      contentContainer.appendChild(contentWrapper);
       
       // Configure PDF options
       const options = {
-        margin: [15, 15, 15, 15], // top, right, bottom, left
+        margin: 15,
         filename: `${ticker.toUpperCase()}_Analysis.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true, 
-          logging: false,
-          allowTaint: true,
-          removeContainer: true
-        },
-        jsPDF: { 
-          unit: 'mm', 
-          format: 'a4', 
-          orientation: 'portrait',
-          compress: true 
-        },
-        pagebreak: { 
-          mode: ['avoid-all', 'css', 'legacy'],
-          avoid: ['.pdf-section', 'table', 'img']
-        }
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
       
       // Generate PDF
-      await html2pdf().from(element).set(options).save();
+      await html2pdf()
+        .from(pdfElement)
+        .set(options)
+        .save();
       
       toast({
         title: "PDF Downloaded",
