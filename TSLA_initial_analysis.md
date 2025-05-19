@@ -1,18 +1,18 @@
-| **Category**           | **Metric**           | **Current Value** | **Commentary / Assessment**                                                                                                                                         |
-|------------------------|----------------------|-------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Valuation & Growth     | P/E (TTM)            | 188.53            | Extremely high; indicates very high growth expectations priced in, well above auto industry average (typically <20).                                                |
-|                        | P/S                  | 11.52             | High; suggests the stock is expensive relative to sales, common for high-growth tech-oriented firms, but above most automakers.                                    |
-|                        | PEG Ratio            | 9.41              | Very high; ideally <1-2 for growth stocks, suggests valuation may not be justified by expected earnings growth.                                                     |
-|                        | P/FCF                | 162.64            | Very high; implies investors are paying a premium for future cash flows, above most industry peers.                                                                 |
-|                        | P/B                  | 14.79             | High; indicates the stock trades far above its book value, reflecting strong investor confidence but also potential overvaluation.                                  |
-| Profitability          | ROE                  | 9.16%             | Moderate; generally good, but below many tech peers and some auto companies. Indicates moderate efficiency in generating returns on equity.                        |
-|                        | ROA                  | 5.43%             | Modest; below high-performing companies, but acceptable for capital-intensive industries like automotive manufacturing.                                             |
-|                        | Profit Margin        | 6.65%             | Decent for auto sector (often 3-7%), but lower than many tech companies. Reflects profitability after all expenses.                                                |
-|                        | Sales Growth (5Y)    | 34.02%            | Excellent; very strong historical sales growth, well above industry average, supports growth-focused valuation.                                                     |
-| Liquidity & Leverage   | Current Ratio        | 2.00              | Strong; indicates good short-term liquidity, above the standard threshold of 1.5 for safety.                                                                       |
-|                        | Debt/Equity          | 0.18              | Low; suggests conservative leverage, less financial risk compared to peers with higher debt loads.                                                                 |
-| Qualitative Factors    | Insider Ownership    | 12.90%            | High; aligns management with shareholder interests, considered positive.                                                                                            |
-|                        | Insider Transactions | -0.25%            | Slight net selling; could indicate some insider caution but not a major red flag at this level.                                                                    |
-|                        | Dividend TTM         | -                 | No dividend; typical for high-growth companies reinvesting profits into expansion.                                                                                  |
-|                        | Market Cap           | 1102.69B          | Extremely large; reflects TSLA’s status as a mega-cap company and industry leader.                                                                                 |
-|                        | Option/Short         | Yes / Yes         | Actively traded options and notable short interest; stock is liquid but also subject to volatility and speculation.                                                |
+| Metric                | Value        | Commentary / Qualitative Assessment                                                                                              |
+|-----------------------|-------------|-------------------------------------------------------------------------------------------------------------------------------|
+| P/E (TTM)             | 187.34      | Exceptionally high; reflects massive future growth expectations. Market is pricing in years of dominance and innovation.        |
+| P/S                   | 11.45       | Rich for auto sector, but justified by tech-like margins and recurring software/services potential.                            |
+| PEG Ratio             | 9.58        | Well above 1; signals current price far outpaces expected growth. Market is demanding perfection.                              |
+| P/FCF                 | 161.61      | Extremely elevated; cash flow lags earnings due to heavy reinvestment and scaling. Not ideal, but typical for hyper-growth.   |
+| P/B                   | 14.69       | Substantially above industry norms; market values Tesla's intangible assets and brand moat highly.                             |
+| ROE                   | 9.16%       | Modest for a tech leader, but solid for capital-intensive manufacturing. Room for operational leverage to kick in.             |
+| ROA                   | 5.43%       | Average for a company of this scale; efficiency gains likely as global expansion matures.                                      |
+| Profit Margin         | 6.65%       | Thin compared to pure tech, but strong for automakers. Margins could expand with software/FSD adoption.                        |
+| Sales Growth (5Y)     | 34.02%      | Phenomenal growth; outpaces nearly all large-cap peers. Confirms secular demand and execution strength.                        |
+| Current Ratio         | 2.00        | Healthy liquidity; easily covers short-term obligations. No near-term solvency risk.                                           |
+| Debt/Equity           | 0.18        | Very conservative leverage; Tesla is not at risk of debt-driven distress.                                                      |
+| Insider Ownership     | 12.90%      | Exceptionally high for a mega-cap; strong alignment with shareholders, Musk’s stake is a key signal.                           |
+| Insider Transactions  | -0.25%      | Slight net selling; not alarming at this scale, but worth monitoring for trend shifts.                                         |
+| Dividend TTM          | -           | No dividend; all capital reinvested for growth, consistent with high-conviction, long-term strategy.                           |
+| Market Cap            | 1095.71B    | One of the world’s largest companies; liquidity is never an issue, and institutional interest is high.                         |
+| Option/Short          | Yes / Yes   | Robust options market and short interest; volatility remains elevated, enabling asymmetric opportunities during fear spikes.   |

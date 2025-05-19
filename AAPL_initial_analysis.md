@@ -1,18 +1,18 @@
-| **Category**            | **Metric**           | **Value**       | **Commentary / Assessment**                                                                                 |
-|-------------------------|----------------------|-----------------|------------------------------------------------------------------------------------------------------------|
-| Valuation & Growth      | P/E (TTM)            | 32.51           | High relative to S&P 500 average (~20), indicating premium valuation, reflecting strong investor confidence. |
-|                         | P/S                  | 7.77            | Elevated compared to tech peers; suggests high market expectations for future growth and margins.           |
-|                         | PEG Ratio            | 3.98            | Well above 1; indicates that price is high relative to expected earnings growth, often seen as overvalued.  |
-|                         | P/FCF                | 31.60           | High; investors are paying a premium for each dollar of free cash flow, common for dominant tech firms.     |
-|                         | P/B                  | 46.60           | Extremely high; reflects significant intangible value and brand strength, but well above industry average.   |
-| Profitability           | ROE                  | 138.02%         | Exceptionally high; shows very efficient use of equity, boosted by share buybacks and strong profitability. |
-|                         | ROA                  | 29.10%          | Excellent; indicates efficient use of assets to generate profit, well above most large-cap tech peers.      |
-|                         | Profit Margin        | 24.30%          | Strong; highlights robust operational efficiency and pricing power.                                         |
-|                         | Sales Growth (5Y)    | 9.18%           | Solid for a mature company; slower than high-growth tech, but impressive given Apple’s size.                |
-| Liquidity & Leverage    | Current Ratio        | 0.82            | Below 1; suggests potential short-term liquidity risk, but common for Apple due to strong cash flows.       |
-|                         | Debt/Equity          | 1.47            | Moderately leveraged; higher than ideal (<1), but manageable given stable cash generation.                  |
-| Qualitative Factors     | Insider Ownership    | 0.10%           | Very low; typical for mega-cap companies, with most ownership institutional.                                |
-|                         | Insider Transactions | -3.22%          | Net selling; could be routine, but worth monitoring for sentiment shifts.                                   |
-|                         | Dividend TTM         | 1.01 (0.48%)    | Low yield; Apple favors buybacks over dividends, reflecting growth focus over income.                       |
-|                         | Market Cap           | 3111.73B        | Largest public company; demonstrates market dominance and investor trust.                                   |
-|                         | Option/Short         | Yes / Yes       | Actively traded options and short interest; high liquidity and institutional participation.                 |
+| Metric                   | Value         | Commentary / Assessment                                                                                                 |
+|--------------------------|--------------|------------------------------------------------------------------------------------------------------------------------|
+| P/E (TTM)                | 32.59        | High for a mega-cap, but reflects premium pricing power and investor confidence in Apple's durable earnings machine.    |
+| P/S                      | 7.79         | Elevated vs. historical averages; signals market expects continued revenue strength, but not in deep value territory.   |
+| PEG Ratio                | 3.99         | Indicates growth is lagging relative to valuation; ideally <2 for growth, but Apple’s scale justifies a higher ratio.   |
+| P/FCF                    | 31.67        | Expensive, but Apple’s consistent free cash flow and capital return programs justify a premium multiple.                |
+| P/B                      | 46.71        | Exceptionally high; reflects Apple’s asset-light, IP-driven model, but far above most large-cap peers.                  |
+| ROE                      | 138.02%      | World-class; boosted by buybacks and leverage, but signals superior capital efficiency and shareholder focus.           |
+| ROA                      | 29.10%       | Outstanding; Apple turns assets into profits at a rate few can match, underpinning long-term defensibility.             |
+| Profit Margin            | 24.30%       | Elite for hardware/tech; speaks to brand power, ecosystem lock-in, and operational excellence.                          |
+| Sales Growth (5Y)        | 9.18%        | Solid for a company of this size; not hyper-growth, but shows Apple still has levers for expansion.                     |
+| Current Ratio            | 0.82         | Below 1, which can be risky, but Apple’s cash flow and access to capital offset near-term liquidity concerns.           |
+| Debt/Equity              | 1.47         | High for Apple, but manageable due to robust cash generation and low borrowing costs; leverage is a conscious strategy. |
+| Insider Ownership        | 0.10%        | Minimal; typical for mature mega-caps, but means little direct skin in the game from management.                        |
+| Insider Transactions     | -3.22%       | Slight net selling, not unusual at this scale; not a major red flag unless persistent and accelerating.                 |
+| Dividend TTM             | 1.01 (0.48%) | Yield is modest; Apple prioritizes buybacks, but dividend is safe and likely to grow.                                   |
+| Market Cap               | 3119.20B     | Largest in the world; reflects dominance, but also means growth expectations are harder to exceed.                      |
+| Option/Short             | Yes / Yes    | Highly liquid with active options and shorts; reflects interest from sophisticated traders and hedgers.                 |

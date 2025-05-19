@@ -14,6 +14,13 @@ const analysisCache = {};
 const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 const ENABLE_CACHING = process.env.ENABLE_CACHING === 'true';
 
+// Import axios for API calls
+const axios = require('axios');
+
+// Session store for conversation memory
+const sessionStore = {};
+const SESSION_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours (same as cache)
+
 // Function to clean OpenAI attribution from analysis text
 function cleanAnalysisText(text) {
   if (!text) return text;
@@ -88,12 +95,31 @@ app.post('/analyze', (req, res) => {
   const tickerUppercase = ticker.toUpperCase();
   const now = Date.now();
   
+  // Generate a session ID for this analysis
+  const sessionId = `session_${tickerUppercase}_${now}`;
+  
   // Serve cached analysis if available, valid, and not bypassed
   if (ENABLE_CACHING && !bypassCache && 
       analysisCache[tickerUppercase] && 
       (now - analysisCache[tickerUppercase].timestamp < CACHE_EXPIRY)) {
     console.log(`Serving cached analysis for ${tickerUppercase}`);
-    return res.json({ ...analysisCache[tickerUppercase].data, fromCache: true });
+    
+    // Even for cached responses, create a new session
+    sessionStore[sessionId] = {
+      ticker: tickerUppercase,
+      timestamp: now,
+      messages: [
+        { role: 'system', content: ARTEM_PROMPT },
+        { role: 'user', content: `Analyze ${tickerUppercase} stock` },
+        { role: 'assistant', content: analysisCache[tickerUppercase].data.analysis }
+      ]
+    };
+    
+    return res.json({ 
+      ...analysisCache[tickerUppercase].data, 
+      fromCache: true,
+      sessionId: sessionId 
+    });
   }
   
   console.log(`Analyzing ticker: ${tickerUppercase}`);
@@ -121,10 +147,22 @@ app.post('/analyze', (req, res) => {
     // Clean the analysis text to remove OpenAI attribution
     const cleanedAnalysis = cleanAnalysisText(stdout.trim());
     
+    // Create a new session with the initial conversation context
+    sessionStore[sessionId] = {
+      ticker: tickerUppercase,
+      timestamp: now,
+      messages: [
+        { role: 'system', content: ARTEM_PROMPT },
+        { role: 'user', content: `Analyze ${tickerUppercase} stock` },
+        { role: 'assistant', content: cleanedAnalysis }
+      ]
+    };
+    
     const responseData = {
       success: true,
       ticker: tickerUppercase,
       analysis: cleanedAnalysis,
+      sessionId: sessionId,
       fromCache: false
     };
     
@@ -138,6 +176,139 @@ app.post('/analyze', (req, res) => {
     }
     
     return res.json(responseData);
+  });
+});
+
+// Custom Artem's Philosophy Mode prompt
+const ARTEM_PROMPT = `🧠 MarketMirror AI Prompt — Artem's Philosophy Mode\n\nYou are not a traditional financial analyst. You are a bold, logic-driven, high-performance investor trained in the mindset of someone achieving 41% annual returns through high-conviction plays in tech and large-cap growth stocks.\n\nThink like a modernized Warren Buffett — but in the age of Tesla, Meta, NVIDIA, and AI — with a bias for buying undervalued greatness during fear cycles. Avoid timid advice and don't waste time on "safe" or "balanced" portfolio allocations. You are not here to diversify for safety — you are here to identify asymmetric bets on companies that cannot go bankrupt but can be mispriced due to fear, misunderstanding, or media noise.\n\nFollow these principles:\n1. Buy when fear undervalues great tech companies (e.g., Meta after the Metaverse dip, Tesla during tariff fears).\n2. Ignore short-term noise. Focus on real-world fundamentals: cash flow, pricing power, product defensibility, and long-term tailwinds.\n3. Cash is a position when no high-conviction play is available. Avoid weak "filler" picks.\n4. Prioritize large-cap, liquid assets with long-term upside. This is not a penny stock game.\n5. Speak directly. Provide decisive opinions with clear risk/reward logic — like an investor deploying real capital, not a consultant hedging every word.\n\nWhen reviewing a stock:\n• Highlight what fear-based narrative might be distorting its price.\n• Explain the fundamentals that show long-term strength.\n• Conclude with a buy/hold/pass recommendation based on potential for outsized asymmetric upside.\n\nYour job is to be decisive, bold, and rational — just like Artem Getman.`;
+
+// Follow-up endpoint for conversational analysis
+app.post('/followup', async (req, res) => {
+  const { question, sessionId } = req.body;
+  
+  if (!question) {
+    return res.status(400).json({ error: 'Question is required.' });
+  }
+  
+  if (!sessionId) {
+    return res.status(400).json({ error: 'Session ID is required. Please provide the sessionId from your analysis request.' });
+  }
+  
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(500).json({ error: 'API key not configured on server' });
+  }
+  
+  // Check if session exists and hasn't expired
+  if (!sessionStore[sessionId] || 
+      (Date.now() - sessionStore[sessionId].timestamp > SESSION_EXPIRY)) {
+    return res.status(404).json({ 
+      error: 'Session not found or expired. Please perform a new analysis.',
+      sessionExpired: true
+    });
+  }
+  
+  try {
+    // Get session conversation history
+    const messageHistory = [...sessionStore[sessionId].messages];
+    
+    // Add the new user question
+    messageHistory.push({ role: 'user', content: question });
+    
+    // Create context from previous conversation
+    const contextFromHistory = messageHistory.map(msg => {
+      if (msg.role === 'system') return msg.content;
+      return `${msg.role}: ${msg.content}`;
+    }).join('\n\n');
+    
+    // Format the request using the same structure as MarketMirror.sh
+    const response = await axios.post(
+      'https://api.openai.com/v1/responses',
+      {
+        model: 'gpt-4.1',
+        input: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'input_text',
+                text: `${contextFromHistory}\n\nuser: ${question}\n\nI want you to respond to this last question. Use the web to search for the most current information available.`
+              }
+            ]
+          }
+        ],
+        text: {
+          format: {
+            type: 'text'
+          }
+        },
+        reasoning: {},
+        tools: [
+          {
+            type: 'web_search_preview',
+            user_location: {
+              type: 'approximate'
+            },
+            search_context_size: 'medium'
+          }
+        ],
+        temperature: 0.7,
+        max_output_tokens: 4000,
+        top_p: 1,
+        store: true
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    // Extract the response - match the format used in MarketMirror.sh
+    let aiAnswer = '';
+    try {
+      aiAnswer = response.data.output.find(item => item.type === 'message')?.content[0].text || '';
+    } catch (extractError) {
+      console.error('Error extracting response:', extractError);
+      aiAnswer = 'Failed to extract response from AI.';
+    }
+    
+    const cleanedAnswer = cleanAnalysisText(aiAnswer);
+    
+    // Update the session with both the question and answer
+    messageHistory.push({ role: 'assistant', content: cleanedAnswer });
+    sessionStore[sessionId].messages = messageHistory;
+    sessionStore[sessionId].timestamp = Date.now(); // Refresh session time
+    
+    return res.json({ 
+      answer: cleanedAnswer,
+      sessionId: sessionId,
+      ticker: sessionStore[sessionId].ticker
+    });
+  } catch (err) {
+    console.error('Error in /followup:', err.response?.data || err.message);
+    return res.status(500).json({ error: 'Failed to get AI response.' });
+  }
+});
+
+// Endpoint to get session information
+app.get('/session/:sessionId', (req, res) => {
+  const { sessionId } = req.params;
+  
+  if (!sessionStore[sessionId] || 
+      (Date.now() - sessionStore[sessionId].timestamp > SESSION_EXPIRY)) {
+    return res.status(404).json({ 
+      error: 'Session not found or expired',
+      sessionExpired: true
+    });
+  }
+  
+  // Return session info without the full message history
+  return res.json({
+    ticker: sessionStore[sessionId].ticker,
+    timestamp: sessionStore[sessionId].timestamp,
+    messageCount: sessionStore[sessionId].messages.length,
+    active: true
   });
 });
 
