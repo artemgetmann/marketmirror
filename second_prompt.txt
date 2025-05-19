@@ -1,27 +1,27 @@
-I have analyzed the financial metrics for TSLA from Finviz with these values:
+I have analyzed the financial metrics for AAPL from Finviz with these values:
 
 Valuation & Growth:
-- P/E (TTM): 188.53
-- P/S: 11.52
-- PEG Ratio: 9.41
-- P/FCF: 162.64
-- P/B: 14.79
+- P/E (TTM): 32.51
+- P/S: 7.77
+- PEG Ratio: 3.98
+- P/FCF: 31.60
+- P/B: 46.60
 
 Profitability:
-- ROE: 9.16%
-- ROA: 5.43%
-- Profit Margin: 6.65%
-- Sales Growth (5Y): 34.02%
+- ROE: 138.02%
+- ROA: 29.10%
+- Profit Margin: 24.30%
+- Sales Growth (5Y): 9.18%
 
 Liquidity & Leverage:
-- Current Ratio: 2.00
-- Debt/Equity: 0.18
+- Current Ratio: 0.82
+- Debt/Equity: 1.47
 
 Qualitative Factors:
-- Insider Ownership: 12.90%
-- Insider Transactions: -0.25%
-- Dividend TTM: -
-- Market Cap: 1102.69B
+- Insider Ownership: 0.10%
+- Insider Transactions: -3.22%
+- Dividend TTM: 1.01 (0.48%)
+- Market Cap: 3111.73B
 - Option/Short: Yes / Yes
 
 The Analysis Table section has already been created separately. YOU MUST NOT REGENERATE THE ANALYSIS TABLE.
@@ -41,25 +41,25 @@ Sources to use: Google News, MarketBeat, Crunchbase headlines, Yahoo Finance
 
 ## 3. Historical Valuation
 - Retrieve the company's historical P/E ratios (ideally year-end values from 2019 to now).
-- Comment on how the current P/E compares to its historical average and highs/lows, using the Finviz P/E of 188.53 as the current value.
+- Comment on how the current P/E compares to its historical average and highs/lows, using the Finviz P/E of 32.51 as the current value.
 - Use Macrotrends or Gurufocus for accurate historical data only.
 
 ## 4. Competitor Comparison
-- Present a clean comparison table of TSLA and its main competitors with the following format:
+- Present a clean comparison table of AAPL and its main competitors with the following format:
 
 | Company | P/E Ratio | P/S Ratio | Profit Margin | Market Cap (B) |
 |---------|-----------|-----------|---------------|----------------|
-| TSLA | 188.53 | 11.52 | 6.65% | 1102.69B |
+| AAPL | 32.51 | 7.77 | 24.30% | 3111.73B |
 | Competitor 1 | value | value | value | value |
 | Competitor 2 | value | value | value | value |
 
-- For TSLA, use ONLY the Finviz values already provided: P/E: 188.53, P/S: 11.52, Profit Margin: 6.65%, Market Cap: 1102.69B
-- Highlight if TSLA is overvalued or undervalued compared to peers.
+- For AAPL, use ONLY the Finviz values already provided: P/E: 32.51, P/S: 7.77, Profit Margin: 24.30%, Market Cap: 3111.73B
+- Highlight if AAPL is overvalued or undervalued compared to peers.
 
 ## 5. Final Recommendation
 - Based on ALL findings, provide a comprehensive recommendation:
   - Consider insider activity, historical valuation, news, and competitor positioning.
-  - Is TSLA a buy, hold, or sell?
+  - Is AAPL a buy, hold, or sell?
   - How justified is the current valuation?
   - What risks or catalysts should investors watch?
 
