@@ -25,13 +25,13 @@ const Index = () => {
       
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xl mx-auto text-center space-y-6">
         <h1 className="text-5xl font-medium text-black">MarketMirror</h1>
-        <p className="text-xl text-gray-700">A space for financial clarity</p>
+        <p className="text-xl text-gray-700">Wall Street analysis, Hacked by AI.</p>
         
         <form onSubmit={handleSubmit} className="mt-12 space-y-6 w-full">
           <Input
             type="text"
-            placeholder="Enter ticker symbol (e.g., AAPL)"
-            className="w-full h-14 text-lg bg-[#F8F8F8] border border-gray-200 rounded-md px-4"
+            placeholder="Enter stock ticker (e.g., AAPL)"
+            className="w-full h-14 text-sm bg-[#F8F8F8] border border-gray-200 rounded-md px-4"
             value={tickerSymbol}
             onChange={(e) => setTickerSymbol(e.target.value)}
           />
