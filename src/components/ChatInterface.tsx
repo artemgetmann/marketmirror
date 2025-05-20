@@ -114,11 +114,17 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       const currentPosition = activeTyping.text.length;
       
       if (currentPosition < fullContent.length) {
-        // Continue typing with faster speed
-        const typingSpeed = currentMessage === messages[0] ? 10 : 5; // Faster typing speeds
+        // Continue typing with appropriate speeds
+        const isWelcomeMessage = currentMessage === messages[0];
         
-        // Calculate characters per step (type multiple characters at once for faster animation)
-        const charsPerStep = Math.max(1, Math.floor(fullContent.length / 100));
+        // Restore welcome message speed to original 20ms, make other messages slightly slower
+        const typingSpeed = isWelcomeMessage ? 20 : 8;
+        
+        // Adjust characters per step based on message type
+        const charsPerStep = isWelcomeMessage 
+          ? 1 // Type one character at a time for welcome message
+          : Math.max(1, Math.floor(fullContent.length / 150)); // Slower progression for other messages
+        
         const nextPosition = Math.min(fullContent.length, currentPosition + charsPerStep);
         
         const typingTimeout = setTimeout(() => {
