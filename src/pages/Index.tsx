@@ -1,10 +1,11 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Logo from "@/components/Logo";
 import { toast } from "@/hooks/use-toast";
+import { HelpCircle } from "lucide-react";
 
 const Index = () => {
   const [tickerSymbol, setTickerSymbol] = useState("");
@@ -21,6 +22,12 @@ const Index = () => {
     <div className="min-h-screen flex flex-col px-4 py-6 bg-white">
       <div className="absolute top-6 left-6">
         <Logo />
+      </div>
+      
+      <div className="absolute top-6 right-6">
+        <Link to="/about" className="text-gray-600 hover:text-gray-900" aria-label="About MarketMirror">
+          <HelpCircle size={24} />
+        </Link>
       </div>
       
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xl mx-auto text-center space-y-6">
