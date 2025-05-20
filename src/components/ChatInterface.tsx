@@ -26,7 +26,6 @@ interface ChatInterfaceProps {
 // Welcome message with exact line breaks as specified
 const welcomeMessageTemplate = 
 `Hi, I'm MarketMirror AI.
-
 Waging war on traditional finance!
 
 Built on the brain of Artem Getman — an investor  
