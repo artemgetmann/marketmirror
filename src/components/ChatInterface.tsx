@@ -229,6 +229,19 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     }
   }, [activeTyping, messages]);
 
+  // Handle scroll behavior when opening the chat
+  useEffect(() => {
+    if (isOpen) {
+      // When the chat opens, immediately scroll to the bottom of the page to show it
+      setTimeout(() => {
+        window.scrollTo({
+          top: document.body.scrollHeight,
+          behavior: 'auto'
+        });
+      }, 0);
+    }
+  }, [isOpen]);
+
   const scrollToBottom = (smooth = true) => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ 
@@ -354,19 +367,6 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     }
   };
 
-  // Handle scroll behavior when opening the chat
-  useEffect(() => {
-    if (isOpen) {
-      // When the chat opens, immediately scroll to the bottom of the page to show it
-      setTimeout(() => {
-        window.scrollTo({
-          top: document.body.scrollHeight,
-          behavior: 'auto'
-        });
-      }, 0);
-    }
-  }, [isOpen]);
-  
   const toggleChat = () => {
     if (isOpen) {
       // Just close immediately
@@ -602,10 +602,8 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
               </Button>
             </div>
           </form>
-          </div>
         </div>
       )}
     </div>
   );
 }
-
