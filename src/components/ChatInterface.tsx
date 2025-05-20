@@ -107,10 +107,12 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   // Handle scrolling with user override capability
   useEffect(() => {
     // Only auto-scroll when a new message is added, not during typing animation
+    // And definitely not when animation completes
     const isNewMessage = messages.length > 0 && 
       messages[messages.length - 1].id !== (activeTyping?.messageId || '');
       
-    if (autoScroll && !userScrolledUp && isNewMessage) {
+    // Don't scroll if user has scrolled up or animation just finished
+    if (autoScroll && !userScrolledUp && isNewMessage && activeTyping) {
       scrollToBottom(false);
     }
   }, [messages, activeTyping, autoScroll, userScrolledUp]);
@@ -212,7 +214,8 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
         
         return () => clearTimeout(typingTimeout);
       } else {
-        // Animation completed
+        // Animation completed - don't scroll to bottom
+        // Just update the message state to show it's complete
         setMessages(prev => 
           prev.map(m => 
             m.id === activeTyping.messageId 
@@ -220,6 +223,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
               : m
           )
         );
+        // Remove active typing state without triggering any scrolling
         setActiveTyping(null);
       }
     }
