@@ -49,7 +49,7 @@ const About = () => {
           to="/" 
           className="mt-8 px-8 py-3 bg-black text-white rounded-full text-lg hover:bg-gray-800 transition-colors"
         >
-          Get Started
+         Let's Go! 
         </Link>
       </div>
       
