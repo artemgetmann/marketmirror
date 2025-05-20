@@ -10,6 +10,7 @@ interface Message {
   content: string;
   isUser: boolean;
   timestamp: Date;
+  isTyping?: boolean;
 }
 
 interface ChatInterfaceProps {
@@ -17,11 +18,27 @@ interface ChatInterfaceProps {
   ticker: string;
 }
 
+// Welcome message with exact line breaks as specified
+const welcomeMessageTemplate = 
+`Hi, I'm MarketMirror AI.
+Waging war on traditional finance!
+
+Built on the brain of Artem Getman — an investor  
+pulling 41% annual returns with no fund, no pedigree — just results.
+
+Goldman Sachs. UBS. Deutsche.  
+They made the rules. I make them... Obsolete.
+
+Ask anything.  
+Let's break their models — and build returns they only dream of ;)`;
+
 export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [typewriterText, setTypewriterText] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -34,7 +51,33 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, typewriterText]);
+
+  // Typewriter effect for welcome message
+  useEffect(() => {
+    if (isTyping && messages.length > 0 && messages[0].isTyping) {
+      const welcomeMsg = welcomeMessageTemplate;
+      let currentPosition = 0;
+      
+      const typingInterval = setInterval(() => {
+        if (currentPosition <= welcomeMsg.length) {
+          setTypewriterText(welcomeMsg.substring(0, currentPosition));
+          currentPosition++;
+        } else {
+          clearInterval(typingInterval);
+          setIsTyping(false);
+          
+          // Update the message to complete state
+          setMessages(prev => [
+            { ...prev[0], content: welcomeMsg, isTyping: false },
+            ...prev.slice(1)
+          ]);
+        }
+      }, 20); // typing speed
+      
+      return () => clearInterval(typingInterval);
+    }
+  }, [isTyping, messages]);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -109,12 +152,14 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     if (!isOpen && messages.length === 0) {
       const welcomeMessage: Message = {
         id: Date.now().toString(),
-        content: `Hi, I'm MarketMirror AI.\nWaging war on traditional finance!\n\nBuilt on the brain of Artem Getman — an investor pulling 41% annual returns with no fund, no pedigree — just results.\n\nGoldman Sachs. UBS. Deutsche.\nThey made the rules. I make them... Obsolete.\n\nAsk anything.\nLet's break their models — and build returns they only dream of ;)`,
+        content: "", // Start empty for typewriter effect
         isUser: false,
         timestamp: new Date(),
+        isTyping: true,
       };
 
       setMessages([welcomeMessage]);
+      setIsTyping(true);
     }
   };
 
@@ -123,7 +168,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       {!isOpen ? (
         <Button
           onClick={toggleChat}
-          className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow transition-all duration-200"
+          className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white rounded-lg shadow transition-all duration-200"
         >
           <MessageCircle className="h-5 w-5" />
           <span className="font-medium">Ask MarketMirror Follow-up Questions</span>
@@ -134,7 +179,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           className="border rounded-lg shadow-sm overflow-hidden bg-white"
         >
           {/* Chat header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 flex justify-between items-center">
+          <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-4 flex justify-between items-center">
             <h3 className="font-medium text-white flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
               {ticker.toUpperCase()} Analysis Assistant
@@ -143,7 +188,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
               variant="ghost"
               size="sm"
               onClick={toggleChat}
-              className="h-8 w-8 p-0 rounded-full text-white hover:bg-blue-800/20"
+              className="h-8 w-8 p-0 rounded-full text-white hover:bg-white/10"
               aria-label="Close chat"
             >
               <ChevronUp className="h-4 w-4" />
@@ -152,7 +197,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
           {/* Messages container */}
           <div className="max-h-[500px] overflow-y-auto p-4 space-y-6 bg-gray-50">
-            {messages.map((message) => (
+            {messages.map((message, index) => (
               <div
                 key={message.id}
                 className={cn(
@@ -164,14 +209,18 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                   className={cn(
                     "max-w-[85%] rounded-lg px-4 py-3",
                     message.isUser
-                      ? "bg-blue-600 text-white"
+                      ? "bg-gray-800 text-white"
                       : "bg-white border border-gray-200 shadow-sm"
                   )}
                 >
-                  <div className="prose prose-sm max-w-none break-words">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {message.content}
-                    </ReactMarkdown>
+                  <div className="prose prose-sm max-w-none whitespace-pre-line">
+                    {index === 0 && message.isTyping ? (
+                      <div>{typewriterText}<span className="inline-block w-1 h-4 bg-gray-400 ml-0.5 animate-pulse"></span></div>
+                    ) : (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content}
+                      </ReactMarkdown>
+                    )}
                   </div>
                 </div>
               </div>
@@ -180,9 +229,9 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm flex items-center space-x-2">
-                  <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
-                  <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
-                  <span className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+                  <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+                  <span className="w-2 h-2 bg-gray-600 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
                 </div>
               </div>
             )}
@@ -202,18 +251,18 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Ask about this analysis..."
-                className="flex-1 rounded-md border border-gray-300 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                disabled={isLoading}
+                className="flex-1 rounded-md border border-gray-300 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent text-sm"
+                disabled={isLoading || isTyping}
               />
               <Button
                 type="submit"
                 className={cn(
                   "rounded-md flex items-center justify-center transition-colors py-2",
-                  inputValue.trim() && !isLoading
-                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                  inputValue.trim() && !isLoading && !isTyping
+                    ? "bg-gray-800 hover:bg-gray-900 text-white"
                     : "bg-gray-200 text-gray-400 hover:bg-gray-300 cursor-not-allowed"
                 )}
-                disabled={!inputValue.trim() || isLoading}
+                disabled={!inputValue.trim() || isLoading || isTyping}
                 aria-label="Send message"
               >
                 <Send className="h-4 w-4 mr-2" />
