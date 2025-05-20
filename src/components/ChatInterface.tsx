@@ -43,10 +43,12 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [activeTyping, setActiveTyping] = useState<TypewriterState | null>(null);
+  const [autoScroll, setAutoScroll] = useState(true);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -54,9 +56,33 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     }
   }, [isOpen]);
 
+  // Handle scrolling with user override capability
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, activeTyping]);
+    if (autoScroll) {
+      scrollToBottom();
+    }
+  }, [messages, activeTyping, autoScroll]);
+
+  // Detect user scroll to override auto-scrolling
+  useEffect(() => {
+    const messagesContainer = messagesContainerRef.current;
+    if (!messagesContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+      
+      // If user scrolls up, stop auto-scrolling
+      if (!isAtBottom) {
+        setAutoScroll(false);
+      } else {
+        setAutoScroll(true);
+      }
+    };
+
+    messagesContainer.addEventListener('scroll', handleScroll);
+    return () => messagesContainer.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Check for messages that need typewriter animation
   useEffect(() => {
@@ -88,13 +114,17 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       const currentPosition = activeTyping.text.length;
       
       if (currentPosition < fullContent.length) {
-        // Continue typing
-        const typingSpeed = currentMessage === messages[0] ? 20 : 10; // Slower for welcome message
+        // Continue typing with faster speed
+        const typingSpeed = currentMessage === messages[0] ? 10 : 5; // Faster typing speeds
+        
+        // Calculate characters per step (type multiple characters at once for faster animation)
+        const charsPerStep = Math.max(1, Math.floor(fullContent.length / 100));
+        const nextPosition = Math.min(fullContent.length, currentPosition + charsPerStep);
         
         const typingTimeout = setTimeout(() => {
           setActiveTyping({
             messageId: activeTyping.messageId,
-            text: fullContent.substring(0, currentPosition + 1)
+            text: fullContent.substring(0, nextPosition)
           });
         }, typingSpeed);
         
@@ -122,7 +152,10 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    if (!inputValue.trim() || isLoading || activeTyping) return;
+    if (!inputValue.trim() || isLoading) return;
+
+    // Enable auto-scrolling when user sends a message
+    setAutoScroll(true);
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -197,6 +230,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       };
 
       setMessages([welcomeMessage]);
+      setAutoScroll(true);
     }
   };
 
@@ -248,7 +282,10 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           </div>
 
           {/* Messages container */}
-          <div className="max-h-[500px] overflow-y-auto p-4 space-y-6 bg-gray-50">
+          <div 
+            ref={messagesContainerRef}
+            className="max-h-[500px] overflow-y-auto p-4 space-y-6 bg-gray-50"
+          >
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -265,8 +302,12 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                       : "bg-white border border-gray-200 shadow-sm"
                   )}
                 >
-                  <div className="prose prose-sm max-w-none whitespace-pre-line">
-                    {message.isUser ? message.content : getMessageDisplay(message)}
+                  <div className="prose prose-sm max-w-none whitespace-pre-line text-gray-800 dark:text-gray-200">
+                    {message.isUser ? (
+                      <span className="text-white">{message.content}</span>
+                    ) : (
+                      getMessageDisplay(message)
+                    )}
                   </div>
                 </div>
               </div>
@@ -298,17 +339,17 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Ask about this analysis..."
                 className="flex-1 rounded-md border border-gray-300 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent text-sm"
-                disabled={isLoading || activeTyping !== null}
+                disabled={isLoading}
               />
               <Button
                 type="submit"
                 className={cn(
                   "rounded-md flex items-center justify-center transition-colors py-2",
-                  inputValue.trim() && !isLoading && activeTyping === null
+                  inputValue.trim() && !isLoading
                     ? "bg-gray-800 hover:bg-gray-900 text-white"
                     : "bg-gray-200 text-gray-400 hover:bg-gray-300 cursor-not-allowed"
                 )}
-                disabled={!inputValue.trim() || isLoading || activeTyping !== null}
+                disabled={!inputValue.trim() || isLoading}
                 aria-label="Send message"
               >
                 <Send className="h-4 w-4 mr-2" />
