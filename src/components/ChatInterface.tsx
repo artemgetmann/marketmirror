@@ -213,15 +213,15 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                       : "bg-white border border-gray-200 shadow-sm"
                   )}
                 >
-                  <div className="prose prose-sm max-w-none whitespace-pre-line">
-                    {index === 0 && message.isTyping ? (
-                      <div>{typewriterText}<span className="inline-block w-1 h-4 bg-gray-400 ml-0.5 animate-pulse"></span></div>
-                    ) : (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {message.content}
-                      </ReactMarkdown>
-                    )}
-                  </div>
+                  {index === 0 && message.isTyping ? (
+                    <div className="prose prose-sm max-w-none whitespace-pre-line">
+                      {typewriterText}<span className="inline-block w-1 h-4 bg-gray-400 ml-0.5 animate-pulse"></span>
+                    </div>
+                  ) : (
+                    <div className="prose prose-sm max-w-none whitespace-pre-line">
+                      {message.content}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
