@@ -189,8 +189,9 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
     // If opening chat for the first time and no messages, add a welcome message
     if (!isOpen && messages.length === 0) {
+      const welcomeId = Date.now().toString();
       const welcomeMessage: Message = {
-        id: Date.now().toString(),
+        id: welcomeId,
         content: welcomeMessageTemplate,
         displayedContent: "", // Start empty for typewriter effect
         isUser: false,
@@ -200,10 +201,9 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
       setMessages([welcomeMessage]);
       
-      // Start typewriter effect after a short delay
-      setTimeout(() => {
-        startTypingAnimation(welcomeMessage.id);
-      }, 300);
+      // Start typewriter effect immediately
+      setActiveTypingMessageId(welcomeId);
+      setIsTyping(true);
     }
   };
 
