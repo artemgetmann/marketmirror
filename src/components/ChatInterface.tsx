@@ -11,6 +11,7 @@ interface Message {
   isUser: boolean;
   timestamp: Date;
   isTyping?: boolean;
+  displayedContent?: string;
 }
 
 interface ChatInterfaceProps {
@@ -37,8 +38,8 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [typewriterText, setTypewriterText] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [activeTypingMessageId, setActiveTypingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -51,33 +52,50 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, typewriterText]);
+  }, [messages, isTyping]);
 
-  // Typewriter effect for welcome message
+  // Typewriter effect for any message
   useEffect(() => {
-    if (isTyping && messages.length > 0 && messages[0].isTyping) {
-      const welcomeMsg = welcomeMessageTemplate;
+    if (isTyping && activeTypingMessageId) {
+      const messageToType = messages.find(m => m.id === activeTypingMessageId);
+      
+      if (!messageToType) {
+        setIsTyping(false);
+        return;
+      }
+      
+      const fullContent = messageToType.content;
       let currentPosition = 0;
       
       const typingInterval = setInterval(() => {
-        if (currentPosition <= welcomeMsg.length) {
-          setTypewriterText(welcomeMsg.substring(0, currentPosition));
+        if (currentPosition <= fullContent.length) {
+          setMessages(prev => 
+            prev.map(m => 
+              m.id === activeTypingMessageId 
+                ? { ...m, displayedContent: fullContent.substring(0, currentPosition) } 
+                : m
+            )
+          );
           currentPosition++;
         } else {
           clearInterval(typingInterval);
+          setActiveTypingMessageId(null);
           setIsTyping(false);
           
-          // Update the message to complete state
-          setMessages(prev => [
-            { ...prev[0], content: welcomeMsg, isTyping: false },
-            ...prev.slice(1)
-          ]);
+          // Mark typing as complete
+          setMessages(prev => 
+            prev.map(m => 
+              m.id === activeTypingMessageId 
+                ? { ...m, isTyping: false } 
+                : m
+            )
+          );
         }
-      }, 20); // typing speed
+      }, 10); // faster typing speed for responses
       
       return () => clearInterval(typingInterval);
     }
-  }, [isTyping, messages]);
+  }, [isTyping, activeTypingMessageId, messages]);
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -85,10 +103,16 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     }
   };
 
+  // Start typewriter animation for a message
+  const startTypingAnimation = (messageId: string) => {
+    setActiveTypingMessageId(messageId);
+    setIsTyping(true);
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    if (!inputValue.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading || isTyping) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -125,21 +149,36 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: data.answer,
+        displayedContent: "", // Start empty for typewriter effect
         isUser: false,
         timestamp: new Date(),
+        isTyping: true,
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+      
+      // Start typewriter effect for the AI response
+      setTimeout(() => {
+        startTypingAnimation(aiMessage.id);
+      }, 300);
+      
     } catch (error) {
       // Add error message
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: "I couldn't answer that right now. Please try again later.",
+        displayedContent: "", // Start empty for typewriter effect
         isUser: false,
         timestamp: new Date(),
+        isTyping: true,
       };
 
       setMessages((prev) => [...prev, errorMessage]);
+      
+      // Start typewriter effect for the error message
+      setTimeout(() => {
+        startTypingAnimation(errorMessage.id);
+      }, 300);
     } finally {
       setIsLoading(false);
     }
@@ -152,14 +191,19 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     if (!isOpen && messages.length === 0) {
       const welcomeMessage: Message = {
         id: Date.now().toString(),
-        content: "", // Start empty for typewriter effect
+        content: welcomeMessageTemplate,
+        displayedContent: "", // Start empty for typewriter effect
         isUser: false,
         timestamp: new Date(),
         isTyping: true,
       };
 
       setMessages([welcomeMessage]);
-      setIsTyping(true);
+      
+      // Start typewriter effect after a short delay
+      setTimeout(() => {
+        startTypingAnimation(welcomeMessage.id);
+      }, 300);
     }
   };
 
@@ -182,7 +226,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-4 flex justify-between items-center">
             <h3 className="font-medium text-white flex items-center gap-2">
               <MessageCircle className="h-5 w-5" />
-              {ticker.toUpperCase()} Analysis Assistant
+              MarketMirror
             </h3>
             <Button
               variant="ghost"
@@ -213,9 +257,10 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                       : "bg-white border border-gray-200 shadow-sm"
                   )}
                 >
-                  {index === 0 && message.isTyping ? (
+                  {message.isTyping ? (
                     <div className="prose prose-sm max-w-none whitespace-pre-line">
-                      {typewriterText}<span className="inline-block w-1 h-4 bg-gray-400 ml-0.5 animate-pulse"></span>
+                      {message.displayedContent}
+                      <span className="inline-block w-1 h-4 bg-gray-400 ml-0.5 animate-pulse"></span>
                     </div>
                   ) : (
                     <div className="prose prose-sm max-w-none whitespace-pre-line">
