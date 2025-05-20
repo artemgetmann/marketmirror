@@ -39,7 +39,6 @@ Let's break their models — and build returns they only dream of ;)`;
 
 export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [height, setHeight] = useState<number | undefined>(undefined);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -355,84 +354,26 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     }
   };
 
-  // Get reference to the chat container for height animation
-  const chatRef = useRef<HTMLDivElement | null>(null);
-  const chatWrapperRef = useRef<HTMLDivElement | null>(null);
-  
-  useEffect(() => {
-    // When opening, set the height immediately to auto
-    if (isOpen && chatRef.current) {
-      // Get the actual height of the chat container
-      const height = chatRef.current.scrollHeight;
-      // Set the height in state
-      setHeight(height);
-    }
-  }, [isOpen, messages]); // Re-measure whenever messages change
-  
-  // Handle scroll behavior when opening/closing the chat
+  // Handle scroll behavior when opening the chat
   useEffect(() => {
     if (isOpen) {
-      // When the chat opens, scroll to the bottom of the page to show it
+      // When the chat opens, immediately scroll to the bottom of the page to show it
       setTimeout(() => {
         window.scrollTo({
           top: document.body.scrollHeight,
-          behavior: 'smooth'
+          behavior: 'auto'
         });
-      }, 50);
+      }, 0);
     }
   }, [isOpen]);
   
   const toggleChat = () => {
-    // Save the current scroll position
-    const scrollPosition = window.scrollY;
-    
     if (isOpen) {
-      // Store the chat's current position in the viewport before closing
-      const chatPosition = chatWrapperRef.current?.getBoundingClientRect().top || 0;
-      
-      // Closing animation: First set fixed height to current height
-      if (chatRef.current) {
-        setHeight(chatRef.current.scrollHeight);
-        // Force a reflow
-        chatRef.current.offsetHeight;
-        // Then animate to 0
-        setTimeout(() => {
-          setHeight(0);
-        }, 10);
-      }
-      
-      // After animation completes, actually close
-      setTimeout(() => {
-        setIsOpen(false);
-        // Reset height to undefined
-        setHeight(undefined);
-        
-        // Restore exact scroll position after closing
-        setTimeout(() => {
-          window.scrollTo({
-            top: scrollPosition - (chatRef.current?.scrollHeight || 0),
-            behavior: 'auto'
-          });
-        }, 50);
-      }, 300);
+      // Just close immediately
+      setIsOpen(false);
     } else {
-      // First open the chat
+      // Open chat immediately
       setIsOpen(true);
-      // Initial height is 0
-      setHeight(0);
-      
-      // Then animate to auto height
-      setTimeout(() => {
-        if (chatRef.current) {
-          setHeight(chatRef.current.scrollHeight);
-          
-          // Immediately scroll to show the expanding chat
-          window.scrollTo({
-            top: document.body.scrollHeight,
-            behavior: 'smooth'
-          });
-        }
-      }, 10);
       
       // If opening chat for the first time and no messages, add a welcome message
       if (messages.length === 0) {
@@ -547,18 +488,10 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           <span className="font-medium text-[15px]">Ask MarketMirror Follow-up Questions</span>
         </Button>
       ) : (
-        <div 
-          ref={chatWrapperRef}
-          className="overflow-hidden transition-all duration-300 ease-in-out" 
-          style={{ height: height !== undefined ? `${height}px` : 'auto' }}
+        <div
+          ref={chatContainerRef}
+          className="border rounded-lg shadow-sm overflow-hidden bg-white"
         >
-          <div
-            ref={(el) => {
-              chatRef.current = el;
-              chatContainerRef.current = el;
-            }}
-            className="border rounded-lg shadow-sm bg-white"
-          >
           {/* Chat header */}
           <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-4 flex justify-between items-center">
             <h3 className="font-medium text-white flex items-center gap-2">
