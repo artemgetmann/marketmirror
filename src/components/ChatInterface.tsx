@@ -39,6 +39,7 @@ Let's break their models — and build returns they only dream of ;)`;
 
 export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [height, setHeight] = useState<number | undefined>(undefined);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -354,23 +355,66 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     }
   };
 
+  // Get reference to the chat container for height animation
+  const chatRef = useRef<HTMLDivElement | null>(null);
+  
+  useEffect(() => {
+    // When opening, set the height immediately to auto
+    if (isOpen && chatRef.current) {
+      // Get the actual height of the chat container
+      const height = chatRef.current.scrollHeight;
+      // Set the height in state
+      setHeight(height);
+    }
+  }, [isOpen, messages]); // Re-measure whenever messages change
+  
   const toggleChat = () => {
-    setIsOpen(!isOpen);
+    if (isOpen) {
+      // Closing animation: First set fixed height to current height
+      if (chatRef.current) {
+        setHeight(chatRef.current.scrollHeight);
+        // Force a reflow
+        chatRef.current.offsetHeight;
+        // Then animate to 0
+        setTimeout(() => {
+          setHeight(0);
+        }, 10);
+      }
+      
+      // After animation completes, actually close
+      setTimeout(() => {
+        setIsOpen(false);
+        // Reset height to undefined
+        setHeight(undefined);
+      }, 300);
+    } else {
+      // First open the chat
+      setIsOpen(true);
+      // Initial height is 0
+      setHeight(0);
+      
+      // Then animate to auto height
+      setTimeout(() => {
+        if (chatRef.current) {
+          setHeight(chatRef.current.scrollHeight);
+        }
+      }, 10);
+      
+      // If opening chat for the first time and no messages, add a welcome message
+      if (messages.length === 0) {
+        // Add welcome message
+        const welcomeMessage: Message = {
+          id: Date.now().toString(),
+          content: welcomeMessageTemplate,
+          isUser: false,
+          timestamp: new Date(),
+          animationComplete: false
+        };
 
-    // If opening chat for the first time and no messages, add a welcome message
-    if (!isOpen && messages.length === 0) {
-      // Add welcome message
-      const welcomeMessage: Message = {
-        id: Date.now().toString(),
-        content: welcomeMessageTemplate,
-        isUser: false,
-        timestamp: new Date(),
-        animationComplete: false
-      };
-
-      setMessages([welcomeMessage]);
-      setAutoScroll(true);
-      setUserScrolledUp(false);
+        setMessages([welcomeMessage]);
+        setAutoScroll(true);
+        setUserScrolledUp(false);
+      }
     }
   };
 
@@ -463,16 +507,23 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       {!isOpen ? (
         <Button
           onClick={toggleChat}
-          className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white rounded-lg shadow transition-all duration-200"
+          className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white rounded-lg shadow transition-all duration-300 transform hover:scale-[1.02] hover:shadow-md"
         >
           <MessageCircle className="h-6 w-6" />
           <span className="font-medium text-[15px]">Ask MarketMirror Follow-up Questions</span>
         </Button>
       ) : (
-        <div
-          ref={chatContainerRef}
-          className="border rounded-lg shadow-sm overflow-hidden bg-white"
+        <div 
+          className="overflow-hidden transition-all duration-300 ease-in-out" 
+          style={{ height: height !== undefined ? `${height}px` : 'auto' }}
         >
+          <div
+            ref={(el) => {
+              chatRef.current = el;
+              chatContainerRef.current = el;
+            }}
+            className="border rounded-lg shadow-sm bg-white"
+          >
           {/* Chat header */}
           <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-4 flex justify-between items-center">
             <h3 className="font-medium text-white flex items-center gap-2">
@@ -495,7 +546,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                 variant="ghost"
                 size="sm"
                 onClick={toggleChat}
-                className="h-8 w-8 p-0 rounded-full text-white hover:bg-white/10"
+                className="h-8 w-8 p-0 rounded-full text-white hover:bg-white/10 transition-transform duration-300 ease-in-out hover:scale-110"
                 aria-label="Close chat"
               >
                 <ChevronUp className="h-4 w-4" />
@@ -512,7 +563,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
               <div
                 key={message.id}
                 className={cn(
-                  "flex",
+                  "flex transition-all duration-300 ease-out animate-fadeIn",
                   message.isUser ? "justify-end" : "justify-start"
                 )}
               >
@@ -539,7 +590,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
             ))}
 
             {isLoading && (
-              <div className="flex justify-start">
+              <div className="flex justify-start animate-fadeIn">
                 <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm flex items-center space-x-2">
                   <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
                   <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
@@ -564,15 +615,15 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about this analysis..."
-                className="flex-1 rounded-md border border-gray-300 py-2.5 px-4 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-[15px]"
+                className="flex-1 rounded-md border border-gray-300 py-2.5 px-4 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-[15px] transition-all duration-200"
                 disabled={false} /* Allow input even during loading/typing */
               />
               <Button
                 type="submit"
                 className={cn(
-                  "rounded-md flex items-center justify-center transition-colors py-2 px-4",
+                  "rounded-md flex items-center justify-center transition-all duration-200 transform py-2 px-4",
                   inputValue.trim() 
-                    ? "bg-gray-800 hover:bg-gray-900 text-white"
+                    ? "bg-gray-800 hover:bg-gray-900 text-white hover:scale-105"
                     : "bg-gray-200 text-gray-400 hover:bg-gray-300 cursor-not-allowed"
                 )}
                 disabled={!inputValue.trim() || isLoading}
@@ -583,6 +634,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
               </Button>
             </div>
           </form>
+          </div>
         </div>
       )}
     </div>
