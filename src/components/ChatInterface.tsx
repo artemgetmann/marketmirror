@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Send, ChevronDown } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Send, ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -108,7 +109,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     if (!isOpen && messages.length === 0) {
       const welcomeMessage: Message = {
         id: Date.now().toString(),
-        content: `Hello! I can help answer questions about ${ticker.toUpperCase()}. What would you like to know?`,
+        content: `Hi, I'm MarketMirror AI.\nWaging war on traditional finance!\n\nBuilt on the brain of Artem Getman — an investor pulling 41% annual returns with no fund, no pedigree — just results.\n\nGoldman Sachs. UBS. Deutsche.\nThey made the rules. I make them... Obsolete.\n\nAsk anything.\nLet's break their models — and build returns they only dream of ;)`,
         isUser: false,
         timestamp: new Date(),
       };
@@ -118,153 +119,110 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="relative z-10">
-      {/* Chat button */}
-      <motion.div
-        className="fixed bottom-6 right-6"
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{
-          type: "spring",
-          stiffness: 260,
-          damping: 20,
-          delay: 0.5,
-        }}
-      >
+    <div className="mt-12 border-t border-gray-200 pt-6">
+      {!isOpen ? (
         <Button
           onClick={toggleChat}
-          className={cn(
-            "rounded-full w-12 h-12 p-0 shadow-lg",
-            isOpen
-              ? "bg-gray-700 hover:bg-gray-800"
-              : "bg-blue-600 hover:bg-blue-700",
-          )}
-          aria-label={isOpen ? "Close chat" : "Open chat"}
+          className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow transition-all duration-200"
         >
-          {isOpen ? (
-            <ChevronDown className="h-5 w-5" />
-          ) : (
-            <MessageCircle className="h-5 w-5" />
-          )}
+          <MessageCircle className="h-5 w-5" />
+          <span className="font-medium">Ask MarketMirror Follow-up Questions</span>
         </Button>
-      </motion.div>
+      ) : (
+        <div
+          ref={chatContainerRef}
+          className="border rounded-lg shadow-sm overflow-hidden bg-white"
+        >
+          {/* Chat header */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4 flex justify-between items-center">
+            <h3 className="font-medium text-white flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              {ticker.toUpperCase()} Analysis Assistant
+            </h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleChat}
+              className="h-8 w-8 p-0 rounded-full text-white hover:bg-blue-800/20"
+              aria-label="Close chat"
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+          </div>
 
-      {/* Chat interface */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            ref={chatContainerRef}
-            className="fixed bottom-24 right-6 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 20, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            style={{ maxHeight: "70vh" }}
-          >
-            {/* Chat header */}
-            <div className="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="font-medium text-gray-900">
-                {ticker.toUpperCase()} Assistant
-              </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleChat}
-                className="h-8 w-8 p-0 rounded-full"
-                aria-label="Close chat"
+          {/* Messages container */}
+          <div className="max-h-[500px] overflow-y-auto p-4 space-y-6 bg-gray-50">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  "flex",
+                  message.isUser ? "justify-end" : "justify-start"
+                )}
               >
-                <ChevronDown className="h-4 w-4 text-gray-500" />
+                <div
+                  className={cn(
+                    "max-w-[85%] rounded-lg px-4 py-3",
+                    message.isUser
+                      ? "bg-blue-600 text-white"
+                      : "bg-white border border-gray-200 shadow-sm"
+                  )}
+                >
+                  <div className="prose prose-sm max-w-none break-words">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm flex items-center space-x-2">
+                  <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+                  <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+                  <span className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input area */}
+          <form
+            onSubmit={handleSubmit}
+            className="border-t border-gray-200 p-4 bg-white"
+          >
+            <div className="flex items-center gap-2">
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Ask about this analysis..."
+                className="flex-1 rounded-md border border-gray-300 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                disabled={isLoading}
+              />
+              <Button
+                type="submit"
+                className={cn(
+                  "rounded-md flex items-center justify-center transition-colors py-2",
+                  inputValue.trim() && !isLoading
+                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                    : "bg-gray-200 text-gray-400 hover:bg-gray-300 cursor-not-allowed"
+                )}
+                disabled={!inputValue.trim() || isLoading}
+                aria-label="Send message"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Send
               </Button>
             </div>
-
-            {/* Messages container */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <AnimatePresence initial={false}>
-                {messages.map((message) => (
-                  <motion.div
-                    key={message.id}
-                    className={cn(
-                      "flex",
-                      message.isUser ? "justify-end" : "justify-start",
-                    )}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div
-                      className={cn(
-                        "max-w-[80%] rounded-2xl px-4 py-2 break-words",
-                        message.isUser
-                          ? "bg-blue-600 text-white rounded-tr-none"
-                          : "bg-gray-100 text-gray-800 rounded-tl-none",
-                      )}
-                    >
-                      {message.content}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-
-              {isLoading && (
-                <motion.div
-                  className="flex justify-start"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  <div className="bg-gray-100 rounded-2xl px-4 py-2 rounded-tl-none flex items-center space-x-1">
-                    <span
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0ms" }}
-                    ></span>
-                    <span
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "150ms" }}
-                    ></span>
-                    <span
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "300ms" }}
-                    ></span>
-                  </div>
-                </motion.div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input area */}
-            <form
-              onSubmit={handleSubmit}
-              className="border-t border-gray-200 p-4 bg-white"
-            >
-              <div className="flex items-center space-x-2">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Ask about this analysis..."
-                  className="flex-1 rounded-full border border-gray-300 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  disabled={isLoading}
-                />
-                <Button
-                  type="submit"
-                  size="icon"
-                  className={cn(
-                    "rounded-full h-9 w-9 p-0 flex items-center justify-center transition-colors",
-                    inputValue.trim() && !isLoading
-                      ? "bg-blue-600 hover:bg-blue-700"
-                      : "bg-gray-200 text-gray-400 hover:bg-gray-300 cursor-not-allowed",
-                  )}
-                  disabled={!inputValue.trim() || isLoading}
-                  aria-label="Send message"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
