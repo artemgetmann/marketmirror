@@ -422,13 +422,13 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
             ),
             // Add styling for headers
             h1: ({ node, ...props }: any) => (
-              <h1 {...props} className="text-xl font-bold mt-4 mb-2" />
+              <h1 {...props} className="text-xl font-semibold mt-4 mb-2" />
             ),
             h2: ({ node, ...props }: any) => (
-              <h2 {...props} className="text-lg font-bold mt-3 mb-2" />
+              <h2 {...props} className="text-lg font-semibold mt-3 mb-2" />
             ),
             h3: ({ node, ...props }: any) => (
-              <h3 {...props} className="text-md font-bold mt-2 mb-1" />
+              <h3 {...props} className="text-base font-semibold mt-2 mb-1" />
             ),
             // Add styling for lists
             ul: ({ node, ...props }: any) => (
@@ -444,8 +444,8 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
             // Add styling for code blocks
             code: ({ node, inline, ...props }: any) => (
               inline 
-                ? <code {...props} className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono" />
-                : <code {...props} className="block bg-gray-100 p-2 rounded text-sm font-mono overflow-x-auto my-2" />
+                ? <code {...props} className="bg-gray-100 px-1 py-0.5 rounded text-[14px] font-mono" />
+                : <code {...props} className="block bg-gray-100 p-2 rounded text-[14px] font-mono overflow-x-auto my-2" />
             )
           }}
         >
@@ -459,14 +459,14 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const isAiTyping = activeTyping !== null;
 
   return (
-    <div>
+    <div className="max-w-5xl mx-auto w-full">
       {!isOpen ? (
         <Button
           onClick={toggleChat}
-          className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white rounded-lg shadow transition-all duration-200"
+          className="w-full flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-900 hover:to-black text-white rounded-lg shadow transition-all duration-200"
         >
-          <MessageCircle className="h-5 w-5" />
-          <span className="font-medium">Ask MarketMirror Follow-up Questions</span>
+          <MessageCircle className="h-6 w-6" />
+          <span className="font-medium text-[15px]">Ask MarketMirror Follow-up Questions</span>
         </Button>
       ) : (
         <div
@@ -506,7 +506,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           {/* Messages container */}
           <div 
             ref={messagesContainerRef}
-            className="max-h-[500px] overflow-y-auto p-4 space-y-6 bg-gray-50"
+            className="max-h-[75vh] overflow-y-auto px-5 py-4 space-y-5 bg-gray-50"
           >
             {messages.map((message) => (
               <div
@@ -518,14 +518,14 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
               >
                 <div
                   className={cn(
-                    "max-w-[85%] rounded-lg px-4 py-3",
+                    "max-w-[85%] rounded-lg px-5 py-3",
                     message.isUser
                       ? "bg-gray-800 text-white"
                       : "bg-white border border-gray-200 shadow-sm"
                   )}
                 >
                   <div className={cn(
-                    "prose prose-sm max-w-none",
+                    "prose max-w-none text-[15px] leading-relaxed tracking-normal",
                     message.isUser ? "text-white" : "text-gray-800"
                   )}>
                     {message.isUser ? (
@@ -564,21 +564,21 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about this analysis..."
-                className="flex-1 rounded-md border border-gray-300 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent text-sm"
-                disabled={isLoading}
+                className="flex-1 rounded-md border border-gray-300 py-2.5 px-4 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-[15px]"
+                disabled={false} /* Allow input even during loading/typing */
               />
               <Button
                 type="submit"
                 className={cn(
-                  "rounded-md flex items-center justify-center transition-colors py-2",
-                  inputValue.trim() && !isLoading
+                  "rounded-md flex items-center justify-center transition-colors py-2 px-4",
+                  inputValue.trim() 
                     ? "bg-gray-800 hover:bg-gray-900 text-white"
                     : "bg-gray-200 text-gray-400 hover:bg-gray-300 cursor-not-allowed"
                 )}
                 disabled={!inputValue.trim() || isLoading}
                 aria-label="Send message"
               >
-                <Send className="h-4 w-4 mr-2" />
+                <Send className="h-5 w-5 mr-2" />
                 Send
               </Button>
             </div>
