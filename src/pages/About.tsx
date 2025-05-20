@@ -16,7 +16,7 @@ const About = () => {
       </Link>
       
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xl mx-auto text-center space-y-8 pt-16">
-        <h1 className="text-4xl font-medium text-black">We're Not Wall Street—We're Better.</h1>
+        <h1 className="text-4xl font-medium text-black">We're Not Wall Street—We're Better</h1>
         
         <div className="border-t border-gray-200 w-24 my-2"></div>
         
@@ -42,7 +42,7 @@ const About = () => {
         <div className="border-t border-gray-200 w-24 my-2"></div>
         
         <p className="text-xl font-medium text-gray-800">
-          Join our financial rebellion—beat Wall Street at its own game.
+          Join our financial rebellion—beat Wall Street at its own game
         </p>
         
         <Link 
