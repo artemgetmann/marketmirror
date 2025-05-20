@@ -45,11 +45,58 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const [activeTyping, setActiveTyping] = useState<TypewriterState | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [userScrolledUp, setUserScrolledUp] = useState(false);
+  const [messageHistory, setMessageHistory] = useState<string[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Load messages from localStorage when component mounts
+  useEffect(() => {
+    if (sessionId) {
+      const savedMessages = localStorage.getItem(`chat_${sessionId}`);
+      if (savedMessages) {
+        try {
+          const parsed = JSON.parse(savedMessages);
+          // Convert string timestamps back to Date objects
+          const messagesWithDates = parsed.map((message: any) => ({
+            ...message,
+            timestamp: new Date(message.timestamp),
+            animationComplete: true // Ensure all loaded messages show completely
+          }));
+          setMessages(messagesWithDates);
+        } catch (e) {
+          console.error("Error parsing saved messages:", e);
+        }
+      }
+
+      // Load message history for this session
+      const savedHistory = localStorage.getItem(`history_${sessionId}`);
+      if (savedHistory) {
+        try {
+          setMessageHistory(JSON.parse(savedHistory));
+        } catch (e) {
+          console.error("Error parsing saved message history:", e);
+        }
+      }
+    }
+  }, [sessionId]);
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    if (sessionId && messages.length > 0) {
+      localStorage.setItem(`chat_${sessionId}`, JSON.stringify(messages));
+    }
+  }, [messages, sessionId]);
+
+  // Save message history to localStorage
+  useEffect(() => {
+    if (sessionId && messageHistory.length > 0) {
+      localStorage.setItem(`history_${sessionId}`, JSON.stringify(messageHistory));
+    }
+  }, [messageHistory, sessionId]);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -59,7 +106,11 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
   // Handle scrolling with user override capability
   useEffect(() => {
-    if (autoScroll && !userScrolledUp) {
+    // Only auto-scroll when a new message is added, not during typing animation
+    const isNewMessage = messages.length > 0 && 
+      messages[messages.length - 1].id !== (activeTyping?.messageId || '');
+      
+    if (autoScroll && !userScrolledUp && isNewMessage) {
       scrollToBottom(false);
     }
   }, [messages, activeTyping, autoScroll, userScrolledUp]);
@@ -142,13 +193,13 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
         // Continue typing with appropriate speeds
         const isWelcomeMessage = currentMessage === messages[0];
         
-        // Restore welcome message speed to original 20ms, make other messages slower
-        const typingSpeed = isWelcomeMessage ? 20 : 15;
+        // Restore welcome message speed to original 20ms, make other messages faster
+        const typingSpeed = isWelcomeMessage ? 20 : 10;
         
         // Adjust characters per step based on message type
         const charsPerStep = isWelcomeMessage 
           ? 1 // Type one character at a time for welcome message
-          : 1; // Always type one character at a time for proper reading
+          : Math.max(1, Math.floor(fullContent.length / 200)); // Faster progression for other messages
         
         const nextPosition = Math.min(fullContent.length, currentPosition + charsPerStep);
         
@@ -203,6 +254,9 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     if (e) e.preventDefault();
 
     if (!inputValue.trim() || isLoading) return;
+    
+    // Skip any ongoing animation when user sends new message
+    skipAnimation();
 
     // Enable auto-scrolling when user sends a message
     setAutoScroll(true);
@@ -218,6 +272,10 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       timestamp: new Date(),
       animationComplete: true
     };
+
+    // Add to message history for up/down navigation
+    setMessageHistory(prev => [...prev, inputValue]);
+    setHistoryIndex(-1);
 
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
@@ -269,6 +327,29 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     }
   };
 
+  // Handle keyboard navigation through message history
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (messageHistory.length === 0) return;
+
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const newIndex = historyIndex < messageHistory.length - 1 ? historyIndex + 1 : historyIndex;
+      setHistoryIndex(newIndex);
+      if (newIndex >= 0 && newIndex < messageHistory.length) {
+        setInputValue(messageHistory[messageHistory.length - 1 - newIndex]);
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const newIndex = historyIndex > 0 ? historyIndex - 1 : -1;
+      setHistoryIndex(newIndex);
+      if (newIndex >= 0) {
+        setInputValue(messageHistory[messageHistory.length - 1 - newIndex]);
+      } else {
+        setInputValue('');
+      }
+    }
+  };
+
   const toggleChat = () => {
     setIsOpen(!isOpen);
 
@@ -289,71 +370,92 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     }
   };
 
-  const getMessageDisplay = (message: Message) => {
-    // Show typewriter text for active animation
-    if (activeTyping && activeTyping.messageId === message.id) {
-      return (
-        <div onClick={skipAnimation} className="cursor-pointer" title="Click to skip animation">
-          {activeTyping.text}
-          <span className="inline-block w-1 h-4 bg-gray-400 ml-0.5 animate-pulse"></span>
-        </div>
-      );
+  // Clear chat history function
+  const clearChat = () => {
+    if (sessionId) {
+      localStorage.removeItem(`chat_${sessionId}`);
+      localStorage.removeItem(`history_${sessionId}`);
+      setMessages([]);
+      setMessageHistory([]);
+      
+      // Add welcome message back
+      const welcomeMessage: Message = {
+        id: Date.now().toString(),
+        content: welcomeMessageTemplate,
+        isUser: false,
+        timestamp: new Date(),
+        animationComplete: false
+      };
+      
+      setMessages([welcomeMessage]);
     }
+  };
+
+  const getMessageDisplay = (message: Message) => {
+    // Show typewriter text for active animation or full content when complete
+    const textContent = activeTyping && activeTyping.messageId === message.id
+      ? activeTyping.text
+      : message.content;
     
-    // Show full content with Markdown when animation complete
+    // Always render with ReactMarkdown for consistent formatting
     return (
-      <ReactMarkdown 
-        remarkPlugins={[remarkGfm]}
-        components={{
-          // Custom rendering for links
-          a: ({ node, ...props }) => (
-            <a 
-              {...props} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="text-blue-600 hover:underline"
-            />
-          ),
-          // Custom rendering for bold/strong
-          strong: ({ node, ...props }) => (
-            <strong {...props} className="font-bold" />
-          ),
-          // Add styling for headers
-          h1: ({ node, ...props }) => (
-            <h1 {...props} className="text-xl font-bold mt-4 mb-2" />
-          ),
-          h2: ({ node, ...props }) => (
-            <h2 {...props} className="text-lg font-bold mt-3 mb-2" />
-          ),
-          h3: ({ node, ...props }) => (
-            <h3 {...props} className="text-md font-bold mt-2 mb-1" />
-          ),
-          // Add styling for lists
-          ul: ({ node, ...props }) => (
-            <ul {...props} className="list-disc pl-5 my-2" />
-          ),
-          ol: ({ node, ...props }) => (
-            <ol {...props} className="list-decimal pl-5 my-2" />
-          ),
-          // Add styling for block quotes
-          blockquote: ({ node, ...props }) => (
-            <blockquote {...props} className="border-l-4 border-gray-300 pl-4 italic my-2" />
-          ),
-          // Add styling for code blocks
-          code: ({ node, inline, ...props }: any) => (
-            inline 
-              ? <code {...props} className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono" />
-              : <code {...props} className="block bg-gray-100 p-2 rounded text-sm font-mono overflow-x-auto my-2" />
-          )
-        }}
-      >
-        {message.content}
-      </ReactMarkdown>
+      <div>
+        <ReactMarkdown 
+          remarkPlugins={[remarkGfm]}
+          components={{
+            // Custom rendering for links
+            a: ({ node, ...props }: any) => (
+              <a 
+                {...props} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-blue-600 hover:underline"
+              />
+            ),
+            // Custom rendering for bold/strong
+            strong: ({ node, ...props }: any) => (
+              <strong {...props} className="font-bold" />
+            ),
+            // Add styling for headers
+            h1: ({ node, ...props }: any) => (
+              <h1 {...props} className="text-xl font-bold mt-4 mb-2" />
+            ),
+            h2: ({ node, ...props }: any) => (
+              <h2 {...props} className="text-lg font-bold mt-3 mb-2" />
+            ),
+            h3: ({ node, ...props }: any) => (
+              <h3 {...props} className="text-md font-bold mt-2 mb-1" />
+            ),
+            // Add styling for lists
+            ul: ({ node, ...props }: any) => (
+              <ul {...props} className="list-disc pl-5 my-2" />
+            ),
+            ol: ({ node, ...props }: any) => (
+              <ol {...props} className="list-decimal pl-5 my-2" />
+            ),
+            // Add styling for block quotes
+            blockquote: ({ node, ...props }: any) => (
+              <blockquote {...props} className="border-l-4 border-gray-300 pl-4 italic my-2" />
+            ),
+            // Add styling for code blocks
+            code: ({ node, inline, ...props }: any) => (
+              inline 
+                ? <code {...props} className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono" />
+                : <code {...props} className="block bg-gray-100 p-2 rounded text-sm font-mono overflow-x-auto my-2" />
+            )
+          }}
+        >
+          {textContent}
+        </ReactMarkdown>
+      </div>
     );
   };
 
+  // Determine if AI is currently typing
+  const isAiTyping = activeTyping !== null;
+
   return (
-    <div className="mt-12 border-t border-gray-200 pt-6">
+    <div>
       {!isOpen ? (
         <Button
           onClick={toggleChat}
@@ -374,14 +476,15 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
               MarketMirror
             </h3>
             <div className="flex items-center gap-2">
-              {activeTyping && (
+              {messages.length > 1 && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={skipAnimation}
-                  className="h-8 text-xs px-2 text-gray-100 hover:bg-white/10"
+                  onClick={clearChat}
+                  className="h-8 px-2 text-xs rounded text-white hover:bg-white/10"
+                  aria-label="Clear chat"
                 >
-                  Skip animation
+                  Clear
                 </Button>
               )}
               <Button
@@ -455,6 +558,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder="Ask about this analysis..."
                 className="flex-1 rounded-md border border-gray-300 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent text-sm"
                 disabled={isLoading}

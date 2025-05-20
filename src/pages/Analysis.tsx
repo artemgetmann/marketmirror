@@ -7,7 +7,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AnalysisSection } from "@/components/AnalysisSection";
 import Logo from "@/components/Logo";
-import { ChartCandlestick, RefreshCw, Download } from "lucide-react";
+import { ChartCandlestick, RefreshCw, Download, MessageCircle } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import { ChatInterface } from "@/components/ChatInterface";
 import {
@@ -67,7 +67,9 @@ const Analysis = () => {
   const { ticker = "" } = useParams<{ ticker: string }>();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showFloatingChat, setShowFloatingChat] = useState(false);
   const analysisRef = useRef<HTMLDivElement>(null);
+  const chatSectionRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["analysis", ticker],
@@ -371,6 +373,26 @@ const Analysis = () => {
     }
   };
 
+  // Scroll to chat section
+  const scrollToChat = () => {
+    if (chatSectionRef.current) {
+      chatSectionRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Show floating chat button when user scrolls down
+  useEffect(() => {
+    const handleScroll = () => {
+      if (chatSectionRef.current) {
+        const chatPosition = chatSectionRef.current.getBoundingClientRect().top;
+        setShowFloatingChat(chatPosition < 0 || chatPosition > window.innerHeight);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   useEffect(() => {
     if (isError) {
       toast({
@@ -492,13 +514,35 @@ const Analysis = () => {
               </div>
             )}
 
-            {/* Chat interface */}
-            {data.sessionId && (
-              <ChatInterface sessionId={data.sessionId} ticker={ticker} />
-            )}
+            {/* Chat section with ref */}
+            <div ref={chatSectionRef} className="mt-3">
+              {/* Chat interface */}
+              {data.sessionId && (
+                <ChatInterface sessionId={data.sessionId} ticker={ticker} />
+              )}
+            </div>
           </div>
         )}
       </div>
+
+      {/* Floating chat button */}
+      {showFloatingChat && data?.sessionId && !isLoading && !isError && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                onClick={scrollToChat}
+                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gray-800 hover:bg-gray-900 text-white flex items-center justify-center"
+              >
+                <MessageCircle className="h-6 w-6" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Ask follow-up questions</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
     </div>
   );
 };
