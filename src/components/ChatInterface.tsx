@@ -44,6 +44,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTyping, setActiveTyping] = useState<TypewriterState | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
+  const [userScrolledUp, setUserScrolledUp] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,30 +59,54 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
   // Handle scrolling with user override capability
   useEffect(() => {
-    if (autoScroll) {
-      scrollToBottom();
+    if (autoScroll && !userScrolledUp) {
+      scrollToBottom(false);
     }
-  }, [messages, activeTyping, autoScroll]);
+  }, [messages, activeTyping, autoScroll, userScrolledUp]);
 
   // Detect user scroll to override auto-scrolling
   useEffect(() => {
     const messagesContainer = messagesContainerRef.current;
     if (!messagesContainer) return;
 
+    let lastScrollTop = messagesContainer.scrollTop;
+    let scrollTimeout: NodeJS.Timeout | null = null;
+
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+      const scrolledUp = scrollTop < lastScrollTop;
       
-      // If user scrolls up, stop auto-scrolling
-      if (!isAtBottom) {
+      if (scrolledUp) {
+        setUserScrolledUp(true);
         setAutoScroll(false);
-      } else {
+      } else if (isAtBottom) {
+        setUserScrolledUp(false);
         setAutoScroll(true);
       }
+      
+      lastScrollTop = scrollTop;
+      
+      // Clear existing timeout
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+      
+      // Set a new timeout to detect when scrolling has stopped
+      scrollTimeout = setTimeout(() => {
+        // If at bottom when scrolling stops, enable auto-scroll again
+        if (isAtBottom) {
+          setAutoScroll(true);
+          setUserScrolledUp(false);
+        }
+      }, 100);
     };
 
     messagesContainer.addEventListener('scroll', handleScroll);
-    return () => messagesContainer.removeEventListener('scroll', handleScroll);
+    return () => {
+      messagesContainer.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
   }, []);
 
   // Check for messages that need typewriter animation
@@ -117,13 +142,13 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
         // Continue typing with appropriate speeds
         const isWelcomeMessage = currentMessage === messages[0];
         
-        // Restore welcome message speed to original 20ms, make other messages slightly slower
-        const typingSpeed = isWelcomeMessage ? 20 : 8;
+        // Restore welcome message speed to original 20ms, make other messages slower
+        const typingSpeed = isWelcomeMessage ? 20 : 15;
         
         // Adjust characters per step based on message type
         const charsPerStep = isWelcomeMessage 
           ? 1 // Type one character at a time for welcome message
-          : Math.max(1, Math.floor(fullContent.length / 150)); // Slower progression for other messages
+          : 1; // Always type one character at a time for proper reading
         
         const nextPosition = Math.min(fullContent.length, currentPosition + charsPerStep);
         
@@ -149,9 +174,28 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     }
   }, [activeTyping, messages]);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = (smooth = true) => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: smooth ? "smooth" : "auto"
+      });
+    }
+  };
+
+  // Skip typing animation for current message
+  const skipAnimation = () => {
+    if (activeTyping) {
+      const currentMessage = messages.find(m => m.id === activeTyping.messageId);
+      if (currentMessage) {
+        setActiveTyping(null);
+        setMessages(prev => 
+          prev.map(m => 
+            m.id === activeTyping.messageId 
+              ? { ...m, animationComplete: true }
+              : m
+          )
+        );
+      }
     }
   };
 
@@ -162,6 +206,10 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
     // Enable auto-scrolling when user sends a message
     setAutoScroll(true);
+    setUserScrolledUp(false);
+    
+    // Skip any ongoing animation when user sends new message
+    skipAnimation();
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -237,6 +285,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
       setMessages([welcomeMessage]);
       setAutoScroll(true);
+      setUserScrolledUp(false);
     }
   };
 
@@ -244,15 +293,63 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     // Show typewriter text for active animation
     if (activeTyping && activeTyping.messageId === message.id) {
       return (
-        <div>
+        <div onClick={skipAnimation} className="cursor-pointer" title="Click to skip animation">
           {activeTyping.text}
           <span className="inline-block w-1 h-4 bg-gray-400 ml-0.5 animate-pulse"></span>
         </div>
       );
     }
     
-    // Show full content when animation complete
-    return message.content;
+    // Show full content with Markdown when animation complete
+    return (
+      <ReactMarkdown 
+        remarkPlugins={[remarkGfm]}
+        components={{
+          // Custom rendering for links
+          a: ({ node, ...props }) => (
+            <a 
+              {...props} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-blue-600 hover:underline"
+            />
+          ),
+          // Custom rendering for bold/strong
+          strong: ({ node, ...props }) => (
+            <strong {...props} className="font-bold" />
+          ),
+          // Add styling for headers
+          h1: ({ node, ...props }) => (
+            <h1 {...props} className="text-xl font-bold mt-4 mb-2" />
+          ),
+          h2: ({ node, ...props }) => (
+            <h2 {...props} className="text-lg font-bold mt-3 mb-2" />
+          ),
+          h3: ({ node, ...props }) => (
+            <h3 {...props} className="text-md font-bold mt-2 mb-1" />
+          ),
+          // Add styling for lists
+          ul: ({ node, ...props }) => (
+            <ul {...props} className="list-disc pl-5 my-2" />
+          ),
+          ol: ({ node, ...props }) => (
+            <ol {...props} className="list-decimal pl-5 my-2" />
+          ),
+          // Add styling for block quotes
+          blockquote: ({ node, ...props }) => (
+            <blockquote {...props} className="border-l-4 border-gray-300 pl-4 italic my-2" />
+          ),
+          // Add styling for code blocks
+          code: ({ node, inline, ...props }: any) => (
+            inline 
+              ? <code {...props} className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono" />
+              : <code {...props} className="block bg-gray-100 p-2 rounded text-sm font-mono overflow-x-auto my-2" />
+          )
+        }}
+      >
+        {message.content}
+      </ReactMarkdown>
+    );
   };
 
   return (
@@ -276,15 +373,27 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
               <MessageCircle className="h-5 w-5" />
               MarketMirror
             </h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleChat}
-              className="h-8 w-8 p-0 rounded-full text-white hover:bg-white/10"
-              aria-label="Close chat"
-            >
-              <ChevronUp className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {activeTyping && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={skipAnimation}
+                  className="h-8 text-xs px-2 text-gray-100 hover:bg-white/10"
+                >
+                  Skip animation
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleChat}
+                className="h-8 w-8 p-0 rounded-full text-white hover:bg-white/10"
+                aria-label="Close chat"
+              >
+                <ChevronUp className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Messages container */}
@@ -308,9 +417,12 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                       : "bg-white border border-gray-200 shadow-sm"
                   )}
                 >
-                  <div className="prose prose-sm max-w-none whitespace-pre-line text-gray-800 dark:text-gray-200">
+                  <div className={cn(
+                    "prose prose-sm max-w-none",
+                    message.isUser ? "text-white" : "text-gray-800"
+                  )}>
                     {message.isUser ? (
-                      <span className="text-white">{message.content}</span>
+                      <span>{message.content}</span>
                     ) : (
                       getMessageDisplay(message)
                     )}
@@ -368,3 +480,4 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     </div>
   );
 }
+
