@@ -32,7 +32,7 @@ const Index = () => {
       
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xl mx-auto text-center space-y-6">
         <h1 className="text-5xl font-medium text-black">MarketMirror</h1>
-        <p className="text-xl text-gray-700">Wall Street analysis, Hacked by AI.</p>
+        <p className="text-xl text-gray-700">Wall Street analysis, Hacked by AI</p>
         
         <form onSubmit={handleSubmit} className="mt-12 space-y-6 w-full">
           <Input
