@@ -419,8 +419,18 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     const textContent = activeTyping && activeTyping.messageId === message.id
       ? activeTyping.text
       : message.content;
+      
+    // For the welcome message, we need to ensure line breaks are preserved correctly
+    if (message === messages[0] && !message.isUser) {
+      // Convert line breaks to <br/> tags for proper rendering
+      return (
+        <div className="whitespace-pre-line">
+          {textContent}
+        </div>
+      );
+    }
     
-    // Always render with ReactMarkdown for consistent formatting
+    // For other messages, use ReactMarkdown for formatting
     return (
       <div>
         <ReactMarkdown 
