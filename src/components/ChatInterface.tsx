@@ -106,12 +106,14 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
   // Handle scrolling with user override capability
   useEffect(() => {
-    // Only auto-scroll when the user hasn't manually scrolled up
-    // This will run on new text from typing animation or new messages
-    if (autoScroll && !userScrolledUp) {
+    // Only auto-scroll when a new message is added, not during typing animation
+    const isNewMessage = messages.length > 0 && 
+      messages[messages.length - 1].id !== (activeTyping?.messageId || '');
+      
+    if (autoScroll && !userScrolledUp && isNewMessage) {
       scrollToBottom(false);
     }
-  }, [messages, activeTyping?.text, autoScroll, userScrolledUp]);
+  }, [messages, activeTyping, autoScroll, userScrolledUp]);
 
   // Detect user scroll to override auto-scrolling
   useEffect(() => {
@@ -120,48 +122,40 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
     let lastScrollTop = messagesContainer.scrollTop;
     let scrollTimeout: NodeJS.Timeout | null = null;
-    
-    // Detect any scroll movement, even programmatic ones
+
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
       const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+      const scrolledUp = scrollTop < lastScrollTop;
       
-      // If user scrolled up (manually), disable auto-scroll
-      if (scrollTop < lastScrollTop && Math.abs(scrollTop - lastScrollTop) > 10) {
+      if (scrolledUp) {
         setUserScrolledUp(true);
         setAutoScroll(false);
-      }
-      // If user scrolled to bottom, re-enable auto-scroll
-      else if (isAtBottom) {
+      } else if (isAtBottom) {
         setUserScrolledUp(false);
         setAutoScroll(true);
       }
       
       lastScrollTop = scrollTop;
+      
+      // Clear existing timeout
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+      
+      // Set a new timeout to detect when scrolling has stopped
+      scrollTimeout = setTimeout(() => {
+        // If at bottom when scrolling stops, enable auto-scroll again
+        if (isAtBottom) {
+          setAutoScroll(true);
+          setUserScrolledUp(false);
+        }
+      }, 100);
     };
 
-    // Detect any user input - this ensures we know it's user-initiated
-    const handleUserInput = () => {
-      // Capture current scroll position to detect direction after movement
-      lastScrollTop = messagesContainer.scrollTop;
-    };
-
-    // Handle wheel events specifically to detect user scroll
-    const handleWheel = () => {
-      setUserScrolledUp(true);
-      setAutoScroll(false);
-    };
-    
-    messagesContainer.addEventListener('scroll', handleScroll, { passive: true });
-    messagesContainer.addEventListener('mousedown', handleUserInput, { passive: true });
-    messagesContainer.addEventListener('touchstart', handleUserInput, { passive: true });
-    messagesContainer.addEventListener('wheel', handleWheel, { passive: true });
-    
+    messagesContainer.addEventListener('scroll', handleScroll);
     return () => {
       messagesContainer.removeEventListener('scroll', handleScroll);
-      messagesContainer.removeEventListener('mousedown', handleUserInput);
-      messagesContainer.removeEventListener('touchstart', handleUserInput);
-      messagesContainer.removeEventListener('wheel', handleWheel);
       if (scrollTimeout) clearTimeout(scrollTimeout);
     };
   }, []);
@@ -199,13 +193,13 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
         // Continue typing with appropriate speeds
         const isWelcomeMessage = currentMessage === messages[0];
         
-        // Make typing faster - 10ms for welcome message, 5ms for other messages
-        const typingSpeed = isWelcomeMessage ? 10 : 5;
+        // Restore welcome message speed to original 20ms, make other messages faster
+        const typingSpeed = isWelcomeMessage ? 20 : 10;
         
-        // Increase characters per step for faster display
+        // Adjust characters per step based on message type
         const charsPerStep = isWelcomeMessage 
-          ? 3 // Type three characters at a time for welcome message 
-          : Math.max(5, Math.floor(fullContent.length / 100)); // Much faster progression for other messages
+          ? 1 // Type one character at a time for welcome message
+          : Math.max(1, Math.floor(fullContent.length / 200)); // Faster progression for other messages
         
         const nextPosition = Math.min(fullContent.length, currentPosition + charsPerStep);
         
@@ -234,8 +228,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const scrollToBottom = (smooth = true) => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ 
-        behavior: smooth ? "smooth" : "auto",
-        block: "end" // Always scroll to the end of the container
+        behavior: smooth ? "smooth" : "auto"
       });
     }
   };
@@ -253,9 +246,6 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
               : m
           )
         );
-        // Reset scroll state when animation is skipped
-        setAutoScroll(true);
-        setUserScrolledUp(false);
       }
     }
   };
@@ -263,7 +253,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    if (!inputValue.trim()) return; // Only check for empty input, allow during loading
+    if (!inputValue.trim() || isLoading) return;
     
     // Skip any ongoing animation when user sends new message
     skipAnimation();
@@ -271,6 +261,9 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     // Enable auto-scrolling when user sends a message
     setAutoScroll(true);
     setUserScrolledUp(false);
+    
+    // Skip any ongoing animation when user sends new message
+    skipAnimation();
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -509,7 +502,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           {/* Messages container */}
           <div 
             ref={messagesContainerRef}
-            className="max-h-[500px] overflow-y-auto p-4 space-y-4 bg-gray-50" /* Reduced vertical spacing */
+            className="max-h-[500px] overflow-y-auto p-4 space-y-6 bg-gray-50"
           >
             {messages.map((message) => (
               <div
@@ -557,7 +550,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           {/* Input area */}
           <form
             onSubmit={handleSubmit}
-            className="p-4 bg-white" /* Removed border-t and border-gray-200 */
+            className="border-t border-gray-200 p-4 bg-white"
           >
             <div className="flex items-center gap-2">
               <input
@@ -568,17 +561,17 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about this analysis..."
                 className="flex-1 rounded-md border border-gray-300 py-2 px-4 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent text-sm"
-                disabled={false} /* Allow input even during loading/typing */
+                disabled={isLoading}
               />
               <Button
                 type="submit"
                 className={cn(
                   "rounded-md flex items-center justify-center transition-colors py-2",
-                  inputValue.trim()
+                  inputValue.trim() && !isLoading
                     ? "bg-gray-800 hover:bg-gray-900 text-white"
                     : "bg-gray-200 text-gray-400 hover:bg-gray-300 cursor-not-allowed"
                 )}
-                disabled={!inputValue.trim()} /* Only disable if no input - allow sending during AI typing */
+                disabled={!inputValue.trim() || isLoading}
                 aria-label="Send message"
               >
                 <Send className="h-4 w-4 mr-2" />
