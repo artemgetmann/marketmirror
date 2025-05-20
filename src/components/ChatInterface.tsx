@@ -357,6 +357,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
   // Get reference to the chat container for height animation
   const chatRef = useRef<HTMLDivElement | null>(null);
+  const chatWrapperRef = useRef<HTMLDivElement | null>(null);
   
   useEffect(() => {
     // When opening, set the height immediately to auto
@@ -368,8 +369,27 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     }
   }, [isOpen, messages]); // Re-measure whenever messages change
   
-  const toggleChat = () => {
+  // Handle scroll behavior when opening/closing the chat
+  useEffect(() => {
     if (isOpen) {
+      // When the chat opens, scroll to the bottom of the page to show it
+      setTimeout(() => {
+        window.scrollTo({
+          top: document.body.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 50);
+    }
+  }, [isOpen]);
+  
+  const toggleChat = () => {
+    // Save the current scroll position
+    const scrollPosition = window.scrollY;
+    
+    if (isOpen) {
+      // Store the chat's current position in the viewport before closing
+      const chatPosition = chatWrapperRef.current?.getBoundingClientRect().top || 0;
+      
       // Closing animation: First set fixed height to current height
       if (chatRef.current) {
         setHeight(chatRef.current.scrollHeight);
@@ -386,6 +406,14 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
         setIsOpen(false);
         // Reset height to undefined
         setHeight(undefined);
+        
+        // Restore exact scroll position after closing
+        setTimeout(() => {
+          window.scrollTo({
+            top: scrollPosition - (chatRef.current?.scrollHeight || 0),
+            behavior: 'auto'
+          });
+        }, 50);
       }, 300);
     } else {
       // First open the chat
@@ -397,6 +425,12 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       setTimeout(() => {
         if (chatRef.current) {
           setHeight(chatRef.current.scrollHeight);
+          
+          // Immediately scroll to show the expanding chat
+          window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: 'smooth'
+          });
         }
       }, 10);
       
@@ -514,6 +548,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
         </Button>
       ) : (
         <div 
+          ref={chatWrapperRef}
           className="overflow-hidden transition-all duration-300 ease-in-out" 
           style={{ height: height !== undefined ? `${height}px` : 'auto' }}
         >
