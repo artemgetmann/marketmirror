@@ -3,27 +3,27 @@
 I have analyzed the financial metrics for AAPL from Finviz with these values:
 
 Valuation & Growth:
-- P/E (TTM): 32.59
-- P/S: 7.79
-- PEG Ratio: 3.99
-- P/FCF: 31.67
-- P/B: 46.71
+- P/E (TTM): 32.38
+- P/S: 7.74
+- PEG Ratio: 3.97
+- P/FCF: 31.47
+- P/B: 46.41
 
 Profitability:
 - ROE: 138.02%
 - ROA: 29.10%
 - Profit Margin: 24.30%
-- Sales Growth (5Y): 9.18%
+- Sales Growth (5Y): N/A
 
 Liquidity & Leverage:
 - Current Ratio: 0.82
 - Debt/Equity: 1.47
 
 Qualitative Factors:
-- Insider Ownership: 0.10%
-- Insider Transactions: -3.22%
-- Dividend TTM: 1.01 (0.48%)
-- Market Cap: 3119.20B
+- Insider Ownership: N/A
+- Insider Transactions: N/A
+- Dividend TTM: 1.01 (0.49%)
+- Market Cap: 3099.19B
 - Option/Short: Yes / Yes
 
 The Analysis Table section has already been created separately. YOU MUST NOT REGENERATE THE ANALYSIS TABLE.
@@ -43,7 +43,7 @@ Sources to use: Google News, MarketBeat, Crunchbase headlines, Yahoo Finance
 
 ## 3. Historical Valuation
 - Retrieve the company's historical P/E ratios (ideally year-end values from 2019 to now).
-- Comment on how the current P/E compares to its historical average and highs/lows, using the Finviz P/E of 32.59 as the current value.
+- Comment on how the current P/E compares to its historical average and highs/lows, using the Finviz P/E of 32.38 as the current value.
 - Use Macrotrends or Gurufocus for accurate historical data only.
 
 ## 4. Competitor Comparison
@@ -51,11 +51,11 @@ Sources to use: Google News, MarketBeat, Crunchbase headlines, Yahoo Finance
 
 | Company | P/E Ratio | P/S Ratio | Profit Margin | Market Cap (B) |
 |---------|-----------|-----------|---------------|----------------|
-| AAPL | 32.59 | 7.79 | 24.30% | 3119.20B |
+| AAPL | 32.38 | 7.74 | 24.30% | 3099.19B |
 | Competitor 1 | value | value | value | value |
 | Competitor 2 | value | value | value | value |
 
-- For AAPL, use ONLY the Finviz values already provided: P/E: 32.59, P/S: 7.79, Profit Margin: 24.30%, Market Cap: 3119.20B
+- For AAPL, use ONLY the Finviz values already provided: P/E: 32.38, P/S: 7.74, Profit Margin: 24.30%, Market Cap: 3099.19B
 - Highlight if AAPL is overvalued or undervalued compared to peers.
 
 ## 5. Final Recommendation
