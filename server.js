@@ -6,6 +6,8 @@ if (process.env.NODE_ENV !== 'production') {
 const express = require('express');
 const { exec } = require('child_process');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const Database = require('better-sqlite3');
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -20,6 +22,20 @@ const axios = require('axios');
 // Session store for conversation memory
 const sessionStore = {};
 const SESSION_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours (same as cache)
+
+// Initialize SQLite database
+const db = new Database('marketmirror.db');
+
+// Create subscriptions table if it doesn't exist
+db.exec(`
+  CREATE TABLE IF NOT EXISTS subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT UNIQUE NOT NULL,
+    session_id TEXT,
+    source TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )
+`);
 
 // Function to clean OpenAI attribution from analysis text
 function cleanAnalysisText(text) {
@@ -77,8 +93,30 @@ app.get('/cache-status', (req, res) => {
   });
 });
 
+// Configure rate limiter: 4 analyses per day per sessionId or IP
+const analyzeLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000, // 24 hours
+  max: 4, // limit each sessionId/IP to 4 analyses per day
+  keyGenerator: (req) => req.body.sessionId || req.ip,
+  handler: (req, res) => {
+    // Calculate time until rate limit resets
+    const resetTime = new Date(req.rateLimit.resetTime).toISOString();
+    const secondsUntilReset = Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000);
+    
+    res.status(429).json({
+      success: false,
+      error: '🔥 You have reached your daily analysis limit. Want more? Join the waitlist.',
+      usageLimit: 4,
+      resetTime: resetTime,
+      resetInSeconds: secondsUntilReset
+    });
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false // Disable the `X-RateLimit-*` headers
+});
+
 // Main endpoint to analyze stocks
-app.post('/analyze', (req, res) => {
+app.post('/analyze', analyzeLimiter, (req, res) => {
   console.log('Received request:', req.body);
   
   const { ticker, bypassCache } = req.body;
@@ -118,7 +156,12 @@ app.post('/analyze', (req, res) => {
     return res.json({ 
       ...analysisCache[tickerUppercase].data, 
       fromCache: true,
-      sessionId: sessionId 
+      sessionId: sessionId,
+      usageInfo: {
+        usageCount: req.rateLimit?.current || 0,
+        usageLimit: req.rateLimit?.limit || 4,
+        remainingUses: req.rateLimit?.remaining || 4
+      }
     });
   }
   
@@ -174,6 +217,13 @@ app.post('/analyze', (req, res) => {
       };
       console.log(`Cached analysis for ${tickerUppercase}`);
     }
+    
+    // Add usage information to the response
+    responseData.usageInfo = {
+      usageCount: req.rateLimit?.current || 0,
+      usageLimit: req.rateLimit?.limit || 4,
+      remainingUses: req.rateLimit?.remaining || 4
+    };
     
     return res.json(responseData);
   });
@@ -283,7 +333,12 @@ app.post('/followup', async (req, res) => {
     return res.json({ 
       answer: cleanedAnswer,
       sessionId: sessionId,
-      ticker: sessionStore[sessionId].ticker
+      ticker: sessionStore[sessionId].ticker,
+      usageInfo: {
+        usageCount: req.rateLimit?.current || 0,
+        usageLimit: req.rateLimit?.limit || 4,
+        remainingUses: req.rateLimit?.remaining || 4
+      }
     });
   } catch (err) {
     console.error('Error in /followup:', err.response?.data || err.message);
@@ -310,6 +365,62 @@ app.get('/session/:sessionId', (req, res) => {
     messageCount: sessionStore[sessionId].messages.length,
     active: true
   });
+});
+
+// Email subscription endpoint
+app.post('/subscribe', async (req, res) => {
+  const { email, sessionId, source = 'usage-limit' } = req.body;
+  
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  
+  try {
+    // Insert the email into the database, ignoring if it already exists
+    const stmt = db.prepare(
+      `INSERT OR IGNORE INTO subscriptions(email, session_id, source) 
+       VALUES (?, ?, ?)`
+    );
+    const result = stmt.run(email, sessionId || null, source);
+    
+    if (result.changes === 0) {
+      // Email already exists
+      return res.json({ 
+        success: true, 
+        message: "👍 You're already on our waitlist. We'll notify you when paid plans launch.",
+        alreadySubscribed: true
+      });
+    }
+    
+    return res.json({ 
+      success: true, 
+      message: "👍 You'll be notified when paid plans launch."
+    });
+  } catch (err) {
+    console.error('Error in /subscribe:', err);
+    return res.status(500).json({ error: 'Failed to subscribe. Please try again.' });
+  }
+});
+
+// Endpoint to check subscriptions (admin use)
+app.get('/subscriptions', (req, res) => {
+  // Simple security check - require an admin token
+  const { adminToken } = req.query;
+  
+  if (adminToken !== process.env.ADMIN_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  
+  try {
+    const subscribers = db.prepare('SELECT * FROM subscriptions ORDER BY created_at DESC').all();
+    return res.json({
+      count: subscribers.length,
+      subscribers
+    });
+  } catch (err) {
+    console.error('Error fetching subscribers:', err);
+    return res.status(500).json({ error: 'Failed to fetch subscribers' });
+  }
 });
 
 // Start the server

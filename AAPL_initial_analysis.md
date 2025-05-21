@@ -1,18 +1,18 @@
-| Metric                  | Value         | Commentary / Qualitative Assessment                                                                                         |
-|-------------------------|--------------|----------------------------------------------------------------------------------------------------------------------------|
-| P/E (TTM)               | 32.28        | Elevated for a mega-cap; reflects premium for stability and brand, but above historic norms for hardware-oriented tech.     |
-| P/S                     | 7.72         | High vs. hardware peers; signals market confidence in pricing power and ecosystem stickiness.                               |
-| PEG Ratio               | 3.96         | Well above 1; growth is slowing relative to valuation. Market is paying up for perceived safety and cash flow durability.   |
-| P/FCF                   | 31.37        | Expensive; investors are betting on continued robust free cash flow, which Apple has delivered for years.                   |
-| P/B                     | 46.27        | Extremely high; reflects intangible value (brand, ecosystem), but far above most tech peers.                                |
-| ROE                     | 138.02%      | Exceptional; capital-light business model, aggressive buybacks, and massive profitability drive this figure.                |
-| ROA                     | 29.10%       | Top-tier; Apple squeezes industry-leading returns from its asset base.                                                      |
-| Profit Margin           | 24.30%       | Very strong for hardware; shows pricing power and operational efficiency.                                                   |
-| Sales Growth (5Y)       | 9.18%        | Solid for a company of this scale, though not hypergrowth; justifies a premium, but not extreme multiples.                  |
-| Current Ratio           | 0.82         | Below 1.0; Apple manages working capital tightly, but no liquidity stress given cash generation and market access.          |
-| Debt/Equity             | 1.47         | Moderate leverage; comfortably serviced by cash flow, but higher than some tech peers.                                      |
-| Insider Ownership       | 0.10%        | Minimal; typical for a mature mega-cap, not a red flag.                                                                    |
-| Insider Transactions    | -1.92%       | Slight net selling; not unusual for execs in a stable, mature company.                                                      |
-| Dividend TTM            | 1.01 (0.49%) | Token yield; Apple prioritizes buybacks over dividends, consistent with capital allocation strategy.                        |
-| Market Cap              | 3089.63B     | World's largest company; liquidity is unmatched, institutional favorite.                                                    |
-| Option/Short            | Yes / Yes    | Highly liquid options and short interest; reflects broad participation and hedging activity.                                |
+| Metric                  | Value         | Commentary / Qualitative Assessment                                                                                           |
+|-------------------------|--------------|-----------------------------------------------------------------------------------------------------------------------------|
+| P/E (TTM)               | 32.28        | Elevated for a mega-cap; signals premium for stability and brand, but not “cheap” by traditional tech standards.             |
+| P/S                     | 7.72         | High for hardware; reflects market’s faith in Apple’s pricing power and recurring revenue, but leaves less margin for error. |
+| PEG Ratio               | 3.96         | Well above 1; suggests growth is not keeping pace with valuation—market expects more than current growth rate justifies.     |
+| P/FCF                   | 31.37        | Expensive vs. historic averages; market is paying up for Apple’s cash generation consistency.                                |
+| P/B                     | 46.27        | Exceptionally high, typical for brands with intangible value and capital-light business models; not a red flag for Apple.    |
+| ROE                     | 138.02%      | Off-the-charts; driven by capital efficiency and aggressive buybacks—world-class shareholder returns.                        |
+| ROA                     | 29.10%       | Impressive asset efficiency; Apple squeezes more profit from its assets than nearly any large-cap peer.                      |
+| Profit Margin           | 24.30%       | Elite for hardware/consumer tech; reflects scale, loyalty, and premium pricing.                                              |
+| Sales Growth (5Y)       | 9.18%        | Solid for a company of this scale, though not hyper-growth; supports a premium, but not at any price.                        |
+| Current Ratio           | 0.82         | Below 1; Apple’s cash conversion cycle and supplier terms make this less concerning, but leaves no buffer for shocks.        |
+| Debt/Equity             | 1.47         | Leveraged for a cash-rich company; Apple can handle it, but rising rates could pressure margins longer term.                 |
+| Insider Ownership       | 0.10%        | Minimal; typical for a mature mega-cap, but no “skin in the game” from leadership.                                           |
+| Insider Transactions    | -1.92%       | Slight net selling; not unusual, but not a bullish insider signal.                                                           |
+| Dividend TTM            | 1.01 (0.49%) | Token yield; signals capital return, but not a draw for income investors.                                                    |
+| Market Cap              | 3089.63B     | Largest public company; scale is both a moat and a growth headwind.                                                          |
+| Option/Short            | Yes / Yes    | Liquid options and short interest; reflects active institutional trading and hedging.                                        |
