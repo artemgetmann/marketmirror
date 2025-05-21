@@ -24,15 +24,15 @@ const Index = () => {
         <Logo />
       </div>
       
-      <div className="absolute top-6 right-6">
+      <div className="absolute top-11 right-6">
         <Link to="/about" className="text-gray-600 hover:text-gray-900" aria-label="About MarketMirror">
-          <HelpCircle size={24} />
+          <HelpCircle size={30} />
         </Link>
       </div>
       
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-xl mx-auto text-center space-y-6">
         <h1 className="text-5xl font-medium text-black">MarketMirror</h1>
-        <p className="text-xl text-gray-700">Wall Street analysis, Hacked by AI</p>
+        <p className="text-xl text-gray-700">Wall Street analysis, Hacked by AI.</p>
         
         <form onSubmit={handleSubmit} className="mt-12 space-y-6 w-full">
           <Input
