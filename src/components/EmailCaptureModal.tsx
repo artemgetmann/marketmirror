@@ -83,9 +83,9 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
-        <div className="flex justify-between items-start mb-6">
-          <h3 className="text-2xl font-medium text-black">
-            {isSubmitted ? 'Thanks for joining!' : 'Daily Limit Reached'}
+        <div className="flex justify-between items-start mb-8">
+          <h3 className="text-xl font-semibold tracking-tight text-gray-900">
+            {isSubmitted ? 'Welcome to the Rebellion' : 'Be First. Not Institutional.'}
           </h3>
           <button 
             onClick={onClose}
@@ -98,26 +98,27 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
         
         {!isSubmitted ? (
           <>
-            <div className="space-y-4">
-              <p className="text-gray-600 text-lg">
-                You've reached your daily limit of free analyses. Your limit will reset {resetTimeFormatted}.
+            <div className="mt-4 text-gray-700 leading-relaxed">
+              <p>
+                Wall Street hides clarity behind overpriced advice.<br/>
+                We're opening the door.
               </p>
-              <p className="text-gray-800 text-lg">
-                Want unlimited access? Join our waitlist for early access when we launch premium features.
+              <p className="mt-3">
+                Drop your email, get early access to unlimited analyses.<br/>
+                Help us replace legacy with logic.
               </p>
             </div>
-            
-            <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+
+            <form onSubmit={handleSubmit} className="mt-6">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                 <input
                   type="email"
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="your@email.com"
                   required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-200 text-base"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 text-base"
                 />
               </div>
               
@@ -129,43 +130,42 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full flex justify-center py-3 px-4 border-0 rounded-xl text-base font-medium text-white bg-black hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black transition-colors"
+                  className="mt-4 w-full bg-black text-white py-3 rounded-full font-medium hover:bg-gray-900 transition"
                 >
-                  {isSubmitting ? 'Submitting...' : 'Join the Waitlist'}
+                  {isSubmitting ? 'Processing...' : 'Join the Rebellion'}
                 </button>
               </div>
             </form>
+
+            <p className="mt-6 text-xs text-gray-500 text-center">Your free quota resets at midnight.</p>
           </>
         ) : (
           <div className="space-y-6">
-            <div className="rounded-xl bg-gray-50 p-6 border border-gray-100">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <svg className="h-6 w-6 text-black" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-lg font-medium text-gray-800">
-                    Thanks for signing up!
-                  </p>
-                  <p className="mt-2 text-base text-gray-600">
-                    We'll notify you as soon as premium access becomes available.
-                  </p>
-                </div>
+            <div className="text-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-gray-50 mx-auto flex items-center justify-center mb-4">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-900">
+                  <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
+              <h4 className="text-xl font-medium text-gray-900">
+                You're in.
+              </h4>
             </div>
             
-            <p className="text-gray-600 text-base">
-              Your daily limit will reset {resetTimeFormatted}. Come back then for more free analyses!
+            <p className="text-gray-700 text-center leading-relaxed">
+              We'll let you know when early access drops.<br/>Thanks for backing the future of investing — built on logic, not legacy.
             </p>
             
-            <button
-              onClick={onClose}
-              className="w-full flex justify-center py-3 px-4 border border-gray-200 rounded-xl text-base font-medium text-gray-800 bg-white hover:bg-gray-50 transition-colors"
-            >
-              Close
-            </button>
+            <div className="mt-6">
+              <button
+                onClick={onClose}
+                className="w-full py-3 rounded-full border border-gray-200 text-gray-800 font-medium hover:bg-gray-50 transition"
+              >
+                Close
+              </button>
+            </div>
+            
+            <p className="mt-4 text-xs text-gray-500 text-center">Your free quota resets at midnight.</p>
           </div>
         )}
       </div>

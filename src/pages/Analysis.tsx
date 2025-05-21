@@ -113,6 +113,16 @@ const Analysis = () => {
         // Update usage info when we get new data
         if (result.usageInfo) {
           setUsageInfo(result.usageInfo);
+          
+          // Check if user has reached limit
+          if (result.usageInfo.remainingUses <= 0) {
+            setRateLimitInfo({
+              resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+              resetInSeconds: 24 * 60 * 60
+            });
+            setShowEmailModal(true);
+            throw new Error("Usage limit reached");
+          }
         }
         return result;
       } catch (err: any) {
@@ -123,6 +133,12 @@ const Analysis = () => {
             resetTime: new Date(err.resetTime),
             resetInSeconds: err.resetInSeconds
           });
+          setShowEmailModal(true);
+        } else if (typeof err.message === 'string' && err.message.includes("limit")) {
+          // Already handled above
+        } else {
+          // For other errors, still show modal but with different messaging
+          setRateLimitInfo(null);
           setShowEmailModal(true);
         }
         throw err;
@@ -447,15 +463,7 @@ const Analysis = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    if (isError) {
-      toast({
-        title: "Error",
-        description: (error as Error)?.message || "Failed to fetch analysis",
-        variant: "destructive",
-      });
-    }
-  }, [isError, error]);
+  useEffect(() => {}, []);
 
   return (
     <div className="min-h-screen flex flex-col p-6 bg-white">
@@ -482,18 +490,49 @@ const Analysis = () => {
         )}
 
         {isError && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <h3 className="text-xl font-medium text-red-800 mb-2">
-              Analysis Failed
-            </h3>
-            <p className="text-red-600 mb-4">
-              {(error as Error)?.message || `Failed to analyze ${ticker}`}
-            </p>
-            <Link to="/">
-              <Button variant="outline" className="mt-2">
-                Try Another Ticker
+          <div className="rounded-2xl bg-gray-50 shadow-xl p-8 mt-6 max-w-xl mx-auto space-y-8">
+            <div className="flex flex-col items-center">
+              <div className="w-10 h-10 flex items-center justify-center mb-6">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-gray-900">
+                  <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <h3 className="text-2xl font-semibold tracking-tight text-gray-900">
+                You've Reached Today's Limit
+              </h3>
+            </div>
+
+            <div className="space-y-6 text-left">
+              <p className="text-base text-gray-700 leading-relaxed">
+                You've used all your free analyses for today. That's what happens when clarity spreads faster than Wall Street can stop it.
+              </p>
+              
+              <div className="space-y-1">
+                <p className="text-gray-500 italic">They said: "People need advisors."</p>
+                <p className="text-gray-900 font-medium">We asked: "Why?"</p>
+              </div>
+              
+              <p className="text-base text-gray-700">
+                MarketMirror is the rebellion.<br/>
+                Not built for institutions. Built for people who think for themselves.
+              </p>
+              
+              <p className="text-base text-gray-700">
+                Help us replace legacy with logic.
+              </p>
+            </div>
+            
+            <div>
+              <p className="text-sm text-gray-500 mb-4 text-center">Join the movement</p>
+              <Button
+                onClick={() => setShowEmailModal(true)}
+                variant="default"
+                size="default"
+                className="w-full bg-black hover:bg-gray-900 text-white rounded-full px-6 py-3 font-medium transition-colors"
+              >
+                Get Early Access
               </Button>
-            </Link>
+            </div>
           </div>
         )}
 
@@ -507,7 +546,7 @@ const Analysis = () => {
                     {/* Create a hidden element with CSS rules */}
                     <div className="hidden">
                       <style dangerouslySetInnerHTML={{ __html: `
-                        .prose p:last-of-type {
+                        .prose p.disclaimer {
                           font-size: 0.75rem !important;
                           color: #6B7280 !important;
                           font-style: italic !important;
@@ -524,12 +563,15 @@ const Analysis = () => {
                         // Custom component for paragraphs to detect and style the disclaimer
                         p: (props) => {
                           const text = String(props.children);
-                          // Check if this is the disclaimer paragraph
+                          // Check if this is the disclaimer paragraph - using more specific/exact matches
                           if (
-                            text.includes("MarketMirror is not a financial advisor") ||
-                            text.includes("Always double-check")
+                            text.toLowerCase().includes("marketmirror is not a financial advisor") ||
+                            text.toLowerCase().includes("always double-check") ||
+                            text.toLowerCase().includes("this analysis is for informational purposes") ||
+                            text.toLowerCase().includes("disclaimer:") ||
+                            text.toLowerCase().includes("not investment advice")
                           ) {
-                            return <p style={{
+                            return <p className="disclaimer" style={{
                               fontSize: '0.75rem',
                               color: '#6B7280',
                               fontStyle: 'italic',
@@ -606,11 +648,7 @@ const Analysis = () => {
               </div>
             )}
             
-            {/* Usage Counter */}
-            {usageInfo && <UsageCounter usageInfo={usageInfo} />}
-            
-            {/* Pricing Teaser */}
-            <PricingTeaser onJoinWaitlist={() => setShowEmailModal(true)} />
+            {/* Removed usage counter and pricing teaser from main view - only shown in paywall modal */}
 
             {/* Chat section with ref */}
             <div ref={chatSectionRef} className="mt-3">
