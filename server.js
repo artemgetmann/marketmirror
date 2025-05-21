@@ -99,10 +99,10 @@ app.get('/cache-status', (req, res) => {
   });
 });
 
-// Configure rate limiter: 1 analysis per day per sessionId or IP (for testing)
+// Configure rate limiter: 2 analyses per day per sessionId or IP (for testing)
 const analyzeLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 1, // temporarily set to 1 for testing
+  max: 2, // limit each sessionId/IP to 2 analyses per day
   keyGenerator: (req) => req.body.sessionId || req.ip,
   handler: (req, res) => {
     // Calculate time until rate limit resets
@@ -112,7 +112,7 @@ const analyzeLimiter = rateLimit({
     res.status(429).json({
       success: false,
       error: '🔥 You have reached your daily analysis limit. Want more? Join the waitlist.',
-      usageLimit: 1, // Temporarily set to 1 for testing,
+      usageLimit: 2, // Set to 2 analyses per day,
       resetTime: resetTime,
       resetInSeconds: secondsUntilReset
     });
@@ -291,15 +291,15 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
     if (adminBypassUsed) {
       responseData.usageInfo = {
         usageCount: 0,
-        usageLimit: 1,
-        remainingUses: 1,
+        usageLimit: 2,
+        remainingUses: 2,
         adminBypass: true
       };
     } else {
       responseData.usageInfo = {
         usageCount: req.rateLimit?.current || 0,
-        usageLimit: req.rateLimit?.limit || 1, // Temporarily set to 1 for testing
-        remainingUses: req.rateLimit?.remaining || 1
+        usageLimit: req.rateLimit?.limit || 2,
+        remainingUses: req.rateLimit?.remaining || 2
       };
     }
     
