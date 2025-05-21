@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
+import { Instagram, Linkedin, Youtube } from "lucide-react";
 
 const About = () => {
   return (
@@ -52,6 +53,56 @@ const About = () => {
         >
          Let's Go! 
         </Link>
+        
+        <div className="border-t border-gray-200 w-24 my-6"></div>
+        
+        <div className="flex flex-col items-center mt-4">
+          <p className="text-gray-700 mb-4">Connect with Artem:</p>
+          
+          <div className="flex gap-6 flex-wrap justify-center">
+            <a 
+              href="https://www.instagram.com/artemgetman_/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <Instagram size={20} />
+              <span>Instagram</span>
+            </a>
+            
+            <a 
+              href="https://www.linkedin.com/in/artem-g-862a69226/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <Linkedin size={20} />
+              <span>LinkedIn</span>
+            </a>
+            
+            <a 
+              href="https://x.com/artemgetman_" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill="currentColor"/>
+              </svg>
+              <span>X (Twitter)</span>
+            </a>
+            
+            <a 
+              href="https://www.youtube.com/@artem_getman" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <Youtube size={20} />
+              <span>YouTube</span>
+            </a>
+          </div>
+        </div>
       </div>
       
       <div className="text-center text-sm text-gray-500 mt-12">
