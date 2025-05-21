@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { generateOrRetrieveSessionId, saveUsageInfo, getUsageInfo } from "@/lib/session";
+import { getAuthHeaders, isAdminAuthenticated } from "@/lib/adminAuth";
 import EmailCaptureModal from "@/components/EmailCaptureModal";
+import AdminLogin from "@/components/AdminLogin";
 import UsageCounter from "@/components/UsageCounter";
 import PricingTeaser from "@/components/PricingTeaser";
 import ReactMarkdown from "react-markdown";
@@ -12,7 +14,7 @@ import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import { AnalysisSection } from "@/components/AnalysisSection";
 import Logo from "@/components/Logo";
-import { ChartCandlestick, RefreshCw, Download, MessageCircle } from "lucide-react";
+import { ChartCandlestick, RefreshCw, Download, MessageCircle, Key } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import { ChatInterface } from "@/components/ChatInterface";
 import {
@@ -49,12 +51,16 @@ const fetchAnalysis = async (
   // Get session ID for tracking usage
   const sessionId = generateOrRetrieveSessionId();
   
+  // Get admin auth headers if available
+  const authHeaders = getAuthHeaders();
+  
   const response = await fetch(
     "https://marketmirror-api.onrender.com/analyze",
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...authHeaders, // Include admin token if available
       },
       body: JSON.stringify({
         ticker,
@@ -100,8 +106,10 @@ const Analysis = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [showFloatingChat, setShowFloatingChat] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showAdminModal, setShowAdminModal] = useState(false);
   const [rateLimitInfo, setRateLimitInfo] = useState<{resetTime?: Date; resetInSeconds?: number} | null>(null);
   const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(getUsageInfo());
+  const [isAdmin, setIsAdmin] = useState<boolean>(isAdminAuthenticated());
   const analysisRef = useRef<HTMLDivElement>(null);
   const chatSectionRef = useRef<HTMLDivElement>(null);
 
@@ -463,7 +471,22 @@ const Analysis = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {}, []);
+  // Check admin status on mount and when localStorage might change
+  useEffect(() => {
+    const checkAdminStatus = () => {
+      setIsAdmin(isAdminAuthenticated());
+    };
+    
+    // Check on mount
+    checkAdminStatus();
+    
+    // Listen for storage events (in case admin login happens in another tab)
+    window.addEventListener('storage', checkAdminStatus);
+    
+    return () => {
+      window.removeEventListener('storage', checkAdminStatus);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col p-6 bg-white">
@@ -519,6 +542,12 @@ const Analysis = () => {
               
               <p className="text-base text-gray-700">
                 Help us replace legacy with logic.
+                {/* Hidden developer access - double click on the last period will open admin modal */}
+                <span 
+                  onDoubleClick={() => setShowAdminModal(true)} 
+                  className="cursor-default select-none"
+                  title="Developer access (double-click)"
+                >.</span>
               </p>
             </div>
             
@@ -543,50 +572,44 @@ const Analysis = () => {
                 title={`${data.ticker} Analysis Results`}
                 content={
                   <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
-                    {/* Create a hidden element with CSS rules */}
-                    <div className="hidden">
-                      <style dangerouslySetInnerHTML={{ __html: `
-                        .prose p.disclaimer {
-                          font-size: 0.75rem !important;
-                          color: #6B7280 !important;
-                          font-style: italic !important;
-                          margin-top: 1.5rem !important;
-                          opacity: 0.8;
-                          line-height: 1.4;
-                        }
-                      `}} />
-                    </div>
-                    
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        // Custom component for paragraphs to detect and style the disclaimer
-                        p: (props) => {
-                          const text = String(props.children);
-                          // Check if this is the disclaimer paragraph - using more specific/exact matches
-                          if (
-                            text.toLowerCase().includes("marketmirror is not a financial advisor") ||
-                            text.toLowerCase().includes("always double-check") ||
-                            text.toLowerCase().includes("this analysis is for informational purposes") ||
-                            text.toLowerCase().includes("disclaimer:") ||
-                            text.toLowerCase().includes("not investment advice")
-                          ) {
-                            return <p className="disclaimer" style={{
+                    {/* Extract and parse the analysis text */}
+                    {(() => {
+                      // Define the exact disclaimer text to look for
+                      const disclaimerText = "MarketMirror is not a financial advisor. It doesn't wear suits, and it won't tell you what to do. Always double-check the numbers — even AI makes mistakes sometimes. Think for yourself — that's kind of the whole point. 😉";
+                      
+                      // Check if analysis contains the disclaimer
+                      const hasDisclaimer = data.analysis.includes(disclaimerText) || 
+                                            data.analysis.includes(disclaimerText.replace(" 😉", ""));
+                      
+                      // If it has the disclaimer, remove it from the analysis for rendering separately
+                      let cleanAnalysis = data.analysis;
+                      if (hasDisclaimer) {
+                        cleanAnalysis = data.analysis.replace(disclaimerText, "").replace(disclaimerText.replace(" 😉", ""), "");
+                      }
+                      
+                      return (
+                        <div className="prose">
+                          {/* Render main analysis content */}
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {cleanAnalysis}
+                          </ReactMarkdown>
+                          
+                          {/* Render disclaimer separately with proper styling */}
+                          {hasDisclaimer && (
+                            <p style={{
                               fontSize: '0.75rem',
                               color: '#6B7280',
-                              fontStyle: 'italic',
-                              marginTop: '1.5rem',
+                              marginTop: '1rem',
                               opacity: 0.8,
-                              lineHeight: 1.4
-                            }} {...props} />;
-                          }
-                          return <p {...props} />;
-                        },
-                      }}
-                    
-                    >
-                      {data.analysis}
-                    </ReactMarkdown>
+                              lineHeight: 1.4,
+                              fontStyle: 'italic'
+                            }}>
+                              <em>MarketMirror is not a financial advisor. It doesn't wear suits, and it won't tell you what to do. Always double-check the numbers — even AI makes mistakes sometimes. Think for yourself — that's kind of the whole point.</em> <span className="emoji">😉</span>
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 }
               />
@@ -648,7 +671,15 @@ const Analysis = () => {
               </div>
             )}
             
-            {/* Removed usage counter and pricing teaser from main view - only shown in paywall modal */}
+            {/* Admin indicator (hidden from main UI) */}
+            {isAdmin && (
+              <div className="text-xs text-right mt-1">
+                <div className="text-green-600 flex items-center justify-end">
+                  <Key size={12} className="mr-1" />
+                  <span>Developer Mode</span>
+                </div>
+              </div>
+            )}
 
             {/* Chat section with ref */}
             <div ref={chatSectionRef} className="mt-3">
@@ -686,6 +717,12 @@ const Analysis = () => {
         onClose={() => setShowEmailModal(false)}
         resetTime={rateLimitInfo?.resetTime}
         resetInSeconds={rateLimitInfo?.resetInSeconds}
+      />
+      
+      {/* Admin Login Modal */}
+      <AdminLogin
+        isOpen={showAdminModal}
+        onClose={() => setShowAdminModal(false)}
       />
     </div>
   );
