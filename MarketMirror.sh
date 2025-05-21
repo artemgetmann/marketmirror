@@ -281,7 +281,13 @@ final_analysis="# Comprehensive Financial Analysis of ${TICKER}
 ## 1. Analysis Table
 ${first_analysis}
 
-${enhanced_analysis}"
+${enhanced_analysis}
+
+
+
+######
+
+*MarketMirror is not a financial advisor. It doesn't wear a suit, and it won't tell you what to do. Always double-check the numbers — even AI makes mistakes sometimes. Think for yourself — that's kind of the whole point. 😉*"
 
 # For debugging, save the complete analysis locally only
 output_file="${TICKER}_comprehensive_analysis_$(date +%Y%m%d).md"
