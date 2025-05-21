@@ -13,10 +13,16 @@ const port = process.env.PORT || 3000;
 
 // Cache setup
 const analysisCache = {};
-const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
-const ENABLE_CACHING = process.env.ENABLE_CACHING === 'true';
+const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // Environment variables
+const ENABLE_CACHING = (process.env.ENABLE_CACHING || 'true').toLowerCase() === 'true';
+const API_KEY = process.env.OPENAI_API_KEY || '';
 
-// Import axios for API calls
+// JWT authentication setup
+const jwt = require('jsonwebtoken');
+const { expressjwt } = require('express-jwt');
+const JWT_SECRET = process.env.JWT_SECRET || 'REDACTED_JWT_SECRET';
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'M@rketM1rr0r-S3cure-P@s$w0rd!';
 const axios = require('axios');
 
 // Session store for conversation memory
@@ -115,8 +121,71 @@ const analyzeLimiter = rateLimit({
   legacyHeaders: false // Disable the `X-RateLimit-*` headers
 });
 
-// Main endpoint to analyze stocks
-app.post('/analyze', analyzeLimiter, (req, res) => {
+// Simple admin access logging function
+const logAdminAttempt = (req, action, success) => {
+  const timestamp = new Date().toISOString();
+  const ip = req.ip || req.connection.remoteAddress;
+  const userAgent = req.headers['user-agent'] || 'Unknown';
+  
+  console.log(`
+🔐 ADMIN ${success ? 'ACCESS' : 'ATTEMPT'} 🔐
+Timestamp: ${timestamp}
+IP: ${ip}
+User-Agent: ${userAgent}
+Action: ${action}
+Success: ${success}
+`);
+};
+
+// Admin login endpoint
+app.post('/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  
+  // Log login attempt
+  const success = username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
+  logAdminAttempt(req, 'login', success);
+  
+  if (success) {
+    // Create token with 24h expiration
+    const token = jwt.sign({ username, role: 'admin' }, JWT_SECRET, { expiresIn: '24h' });
+    res.json({ success: true, token, expiresIn: '24h' });
+  } else {
+    res.status(401).json({ success: false, error: 'Invalid credentials' });
+  }
+});
+
+// Rate limit bypass middleware using JWT
+const bypassRateLimitForAdmin = (req, res, next) => {
+  // Check for JWT in Authorization header
+  const authHeader = req.headers.authorization;
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    
+    try {
+      // Verify the token
+      const decoded = jwt.verify(token, JWT_SECRET);
+      
+      // If valid admin token, bypass rate limit
+      if (decoded.role === 'admin') {
+        logAdminAttempt(req, 'rate-limit-bypass', true);
+        req.adminBypass = true;
+        return next();
+      }
+    } catch (err) {
+      // Token is invalid, just continue to rate limiter
+      console.log('Invalid JWT token:', err.message);
+    }
+  }
+  
+  // No valid admin token, apply rate limit
+  analyzeLimiter(req, res, next);
+};
+
+// Main analysis endpoint with rate limiting
+app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
+  // If admin bypass was used, add info to response
+  const adminBypassUsed = req.adminBypass === true;
   console.log('Received request:', req.body);
   
   const { ticker, bypassCache } = req.body;
@@ -219,11 +288,20 @@ app.post('/analyze', analyzeLimiter, (req, res) => {
     }
     
     // Add usage information to the response
-    responseData.usageInfo = {
-      usageCount: req.rateLimit?.current || 0,
-      usageLimit: req.rateLimit?.limit || 1, // Temporarily set to 1 for testing
-      remainingUses: req.rateLimit?.remaining || 1
-    };
+    if (adminBypassUsed) {
+      responseData.usageInfo = {
+        usageCount: 0,
+        usageLimit: 1,
+        remainingUses: 1,
+        adminBypass: true
+      };
+    } else {
+      responseData.usageInfo = {
+        usageCount: req.rateLimit?.current || 0,
+        usageLimit: req.rateLimit?.limit || 1, // Temporarily set to 1 for testing
+        remainingUses: req.rateLimit?.remaining || 1
+      };
+    }
     
     return res.json(responseData);
   });
@@ -402,14 +480,39 @@ app.post('/subscribe', async (req, res) => {
   }
 });
 
-// Endpoint to check subscriptions (admin use)
-app.get('/subscriptions', (req, res) => {
-  // Simple security check - require an admin token
-  const { adminToken } = req.query;
+// JWT verification middleware for admin routes
+const verifyAdminJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
   
-  if (adminToken !== process.env.ADMIN_TOKEN) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
   }
+  
+  const token = authHeader.split(' ')[1];
+  
+  try {
+    // Verify the token
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // Check for admin role
+    if (decoded.role !== 'admin') {
+      logAdminAttempt(req, 'view-subscriptions', false);
+      return res.status(403).json({ error: 'Admin access required' });
+    }
+    
+    // Valid admin access
+    logAdminAttempt(req, 'view-subscriptions', true);
+    req.user = decoded;
+    next();
+    
+  } catch (err) {
+    logAdminAttempt(req, 'view-subscriptions', false);
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+};
+
+// Endpoint to check subscriptions (admin use)
+app.get('/subscriptions', verifyAdminJWT, (req, res) => {
   
   try {
     const subscribers = db.prepare('SELECT * FROM subscriptions ORDER BY created_at DESC').all();
