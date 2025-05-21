@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { cn } from "@/lib/utils";
 import { AnalysisSection } from "@/components/AnalysisSection";
 import Logo from "@/components/Logo";
 import { ChartCandlestick, RefreshCw, Download, MessageCircle } from "lucide-react";
@@ -450,7 +451,35 @@ const Analysis = () => {
                 title={`${data.ticker} Analysis Results`}
                 content={
                   <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        // Custom component to detect and style the disclaimer
+                        p: ({ children, className, ...props }) => {
+                          // Convert children to string to check content
+                          const textContent = String(children);
+                          
+                          // Check if this paragraph contains the disclaimer text
+                          if (textContent.includes('MarketMirror is not a financial advisor') || 
+                              textContent.includes('Always double-check the numbers')) {
+                            return (
+                              <p 
+                                className={cn(
+                                  "text-xs text-gray-500 italic mt-6", 
+                                  className
+                                )} 
+                                {...props}
+                              >
+                                {children}
+                              </p>
+                            );
+                          }
+                          
+                          // Regular paragraph
+                          return <p className={className} {...props}>{children}</p>;
+                        },
+                      }}
+                    >
                       {data.analysis}
                     </ReactMarkdown>
                   </div>
