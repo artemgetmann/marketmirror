@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Global styles for the MarketMirror disclaimer text */
+.prose p:last-of-type:has(em:first-child):has(.emoji),
+.prose p:has(em:contains("MarketMirror is not a financial advisor")),
+.prose p:has(em:contains("Always double-check")) {
+  font-size: 0.75rem !important;
+  color: #6B7280 !important;
+  margin-top: 1.5rem !important;
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+/* Keep emoji visible but not too prominent */
+.prose p:last-of-type .emoji {
+  font-size: 0.9rem;
+}
+
 /* Apple-style font settings */
 @layer base {
   html {

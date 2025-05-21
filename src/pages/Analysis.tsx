@@ -451,34 +451,44 @@ const Analysis = () => {
                 title={`${data.ticker} Analysis Results`}
                 content={
                   <div className="prose prose-sm sm:prose lg:prose-lg max-w-none">
+                    {/* Create a hidden element with CSS rules */}
+                    <div className="hidden">
+                      <style dangerouslySetInnerHTML={{ __html: `
+                        .prose p:last-of-type {
+                          font-size: 0.75rem !important;
+                          color: #6B7280 !important;
+                          font-style: italic !important;
+                          margin-top: 1.5rem !important;
+                          opacity: 0.8;
+                          line-height: 1.4;
+                        }
+                      `}} />
+                    </div>
+                    
                     <ReactMarkdown 
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        // Custom component to detect and style the disclaimer
-                        p: ({ children, className, ...props }) => {
-                          // Convert children to string to check content
-                          const textContent = String(children);
-                          
-                          // Check if this paragraph contains the disclaimer text
-                          if (textContent.includes('MarketMirror is not a financial advisor') || 
-                              textContent.includes('Always double-check the numbers')) {
-                            return (
-                              <p 
-                                className={cn(
-                                  "text-xs text-gray-500 italic mt-6", 
-                                  className
-                                )} 
-                                {...props}
-                              >
-                                {children}
-                              </p>
-                            );
+                        // Custom component for paragraphs to detect and style the disclaimer
+                        p: (props) => {
+                          const text = String(props.children);
+                          // Check if this is the disclaimer paragraph
+                          if (
+                            text.includes("MarketMirror is not a financial advisor") ||
+                            text.includes("Always double-check")
+                          ) {
+                            return <p style={{
+                              fontSize: '0.75rem',
+                              color: '#6B7280',
+                              fontStyle: 'italic',
+                              marginTop: '1.5rem',
+                              opacity: 0.8,
+                              lineHeight: 1.4
+                            }} {...props} />;
                           }
-                          
-                          // Regular paragraph
-                          return <p className={className} {...props}>{children}</p>;
+                          return <p {...props} />;
                         },
                       }}
+                    
                     >
                       {data.analysis}
                     </ReactMarkdown>
