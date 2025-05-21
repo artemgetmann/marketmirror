@@ -3,6 +3,10 @@ import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
+import { generateOrRetrieveSessionId, saveUsageInfo, getUsageInfo } from "@/lib/session";
+import EmailCaptureModal from "@/components/EmailCaptureModal";
+import UsageCounter from "@/components/UsageCounter";
+import PricingTeaser from "@/components/PricingTeaser";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
@@ -18,6 +22,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+interface UsageInfo {
+  usageCount: number;
+  usageLimit: number;
+  remainingUses: number;
+}
+
 interface AnalysisData {
   success: boolean;
   ticker: string;
@@ -25,6 +35,7 @@ interface AnalysisData {
   fromCache?: boolean;
   error?: string;
   sessionId?: string;
+  usageInfo?: UsageInfo;
 }
 
 interface FetchAnalysisOptions {
@@ -35,6 +46,9 @@ const fetchAnalysis = async (
   ticker: string,
   options?: FetchAnalysisOptions,
 ): Promise<AnalysisData> => {
+  // Get session ID for tracking usage
+  const sessionId = generateOrRetrieveSessionId();
+  
   const response = await fetch(
     "https://marketmirror-api.onrender.com/analyze",
     {
@@ -45,6 +59,7 @@ const fetchAnalysis = async (
       body: JSON.stringify({
         ticker,
         bypassCache: options?.bypassCache,
+        sessionId, // Include sessionId in requests
       }),
     },
   );
@@ -60,6 +75,21 @@ const fetchAnalysis = async (
   if (!data.sessionId) {
     console.warn("No session ID returned from API");
   }
+  
+  // If usage info is provided, store it
+  if (data.usageInfo) {
+    saveUsageInfo(data.usageInfo);
+  } else {
+    // For backward compatibility/testing - create mock usage info
+    // This would be removed once the backend provides real usage data
+    const mockUsageInfo = {
+      usageCount: 2,
+      usageLimit: 5,
+      remainingUses: 3
+    };
+    data.usageInfo = mockUsageInfo;
+    saveUsageInfo(mockUsageInfo);
+  }
 
   return data;
 };
@@ -69,12 +99,35 @@ const Analysis = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showFloatingChat, setShowFloatingChat] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [rateLimitInfo, setRateLimitInfo] = useState<{resetTime?: Date; resetInSeconds?: number} | null>(null);
+  const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(getUsageInfo());
   const analysisRef = useRef<HTMLDivElement>(null);
   const chatSectionRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["analysis", ticker],
-    queryFn: () => fetchAnalysis(ticker),
+    queryFn: async () => {
+      try {
+        const result = await fetchAnalysis(ticker);
+        // Update usage info when we get new data
+        if (result.usageInfo) {
+          setUsageInfo(result.usageInfo);
+        }
+        return result;
+      } catch (err: any) {
+        // Check if this is a rate limit error
+        if (err.status === 429 && err.resetTime) {
+          // Show email collection modal
+          setRateLimitInfo({
+            resetTime: new Date(err.resetTime),
+            resetInSeconds: err.resetInSeconds
+          });
+          setShowEmailModal(true);
+        }
+        throw err;
+      }
+    },
     retry: 1,
     enabled: !!ticker,
   });
@@ -552,6 +605,12 @@ const Analysis = () => {
                 Analysis from cache
               </div>
             )}
+            
+            {/* Usage Counter */}
+            {usageInfo && <UsageCounter usageInfo={usageInfo} />}
+            
+            {/* Pricing Teaser */}
+            <PricingTeaser onJoinWaitlist={() => setShowEmailModal(true)} />
 
             {/* Chat section with ref */}
             <div ref={chatSectionRef} className="mt-3">
@@ -582,6 +641,14 @@ const Analysis = () => {
           </Tooltip>
         </TooltipProvider>
       )}
+      
+      {/* Email Capture Modal */}
+      <EmailCaptureModal
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        resetTime={rateLimitInfo?.resetTime}
+        resetInSeconds={rateLimitInfo?.resetInSeconds}
+      />
     </div>
   );
 };
