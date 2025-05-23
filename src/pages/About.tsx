@@ -11,7 +11,7 @@ const About = () => {
       
       <Link 
         to="/" 
-        className="absolute top-11 right-6 text-gray-600 hover:text-gray-900 flex items-center gap-1 font-medium"
+        className="absolute top-12 right-6 text-gray-600 hover:text-gray-900 flex items-center gap-1 font-medium"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
         Back
@@ -70,7 +70,7 @@ const About = () => {
               className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-black transition-colors"
             >
               <ExternalLink size={14} />
-              <span>Verify performance on eToro (I don't use it anymore)</span>
+              <span>Verify performance on eToro (I don't use eToro anymore)</span>
             </a>
           </div>
         </div>
