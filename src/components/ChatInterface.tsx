@@ -24,18 +24,11 @@ interface ChatInterfaceProps {
 }
 
 // Welcome message with exact line breaks as specified
-const welcomeMessageTemplate = 
-`Hi, I'm MarketMirror AI.
-Waging war on traditional finance!
+const welcomeMessageTemplate = `MarketMirror AI here.
+Just analyzed [COMPANY]. Ready for follow-up questions.
 
-Built on the brain of Artem Getman — an investor  
-pulling 41% annual returns with no fund, no pedigree — just results.
-
-Goldman Sachs. UBS. Deutsche.  
-They made the rules. I make them... Obsolete.
-
-Ask anything.  
-Let's break their models — and build returns they only dream of ;)`;
+Built on Artem Getman's contrarian methodology.
+Ask me anything about this analysis.`;
 
 export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -377,10 +370,10 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       
       // If opening chat for the first time and no messages, add a welcome message
       if (messages.length === 0) {
-        // Add welcome message
+        // Add welcome message with company name replaced
         const welcomeMessage: Message = {
           id: Date.now().toString(),
-          content: welcomeMessageTemplate,
+          content: welcomeMessageTemplate.replace('[COMPANY]', ticker.toUpperCase()),
           isUser: false,
           timestamp: new Date(),
           animationComplete: false
@@ -401,10 +394,10 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       setMessages([]);
       setMessageHistory([]);
       
-      // Add welcome message back
+      // Add welcome message with company name replaced
       const welcomeMessage: Message = {
         id: Date.now().toString(),
-        content: welcomeMessageTemplate,
+        content: welcomeMessageTemplate.replace('[COMPANY]', ticker.toUpperCase()),
         isUser: false,
         timestamp: new Date(),
         animationComplete: false
