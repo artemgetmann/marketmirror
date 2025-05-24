@@ -451,7 +451,62 @@ app.post('/analyze', analyzeLimiter, followUpLimiter, async (req, res) => {
   
   console.log(`Analyzing ticker: ${tickerUppercase}`);
   
-  // Execute MarketMirror.sh with the provided ticker and pass environment variables
+  // In testing mode, return placeholder data instead of making API call
+  if (TESTING_MODE) {
+    console.log(`[TESTING MODE] Skipping API call for ticker: ${tickerUppercase}`);
+    
+    // Create personalized placeholder with the ticker
+    const placeholderResponse = JSON.parse(JSON.stringify(PLACEHOLDER_ANALYSIS));
+    placeholderResponse.ticker = tickerUppercase;
+    
+    // Replace all instances of [TICKER] with the actual ticker
+    Object.keys(placeholderResponse.analysis).forEach(key => {
+      placeholderResponse.analysis[key] = placeholderResponse.analysis[key].replace(/\[TICKER\]/g, tickerUppercase);
+    });
+    
+    // Add some randomization to make it look different each time
+    const randomTips = [
+      `Consider diversifying your portfolio beyond just ${tickerUppercase}.`,
+      `${tickerUppercase}'s market performance should be viewed in context of the broader sector.`,
+      `Remember that past performance of ${tickerUppercase} is not indicative of future results.`,
+      `${tickerUppercase} might be affected by upcoming market events.`,
+      `Always do your own research before investing in ${tickerUppercase}.`
+    ];
+    
+    placeholderResponse.analysis.recommendation += ' ' + randomTips[Math.floor(Math.random() * randomTips.length)];
+    
+    // Format the analysis for response
+    const analysisText = Object.entries(placeholderResponse.analysis)
+      .map(([key, value]) => `**${key.charAt(0).toUpperCase() + key.slice(1)}**: ${value}`)
+      .join('\n\n');
+      
+    // Cache the analysis
+    if (ENABLE_CACHING) {
+      analysisCache[tickerUppercase] = {
+        analysis: analysisText,
+        timestamp: Date.now(),
+        testMode: true
+      };
+    }
+    
+    // Return the response
+    return res.json({
+      success: true,
+      ticker: tickerUppercase,
+      analysis: analysisText,
+      cached: false,
+      testMode: true,
+      adminBypassUsed: adminBypassUsed,
+      sessionId: sessionId,
+      usageInfo: {
+        usageCount: req.rateLimit ? req.rateLimit.current : 1,
+        usageLimit: 2,
+        remainingUses: req.rateLimit ? 2 - req.rateLimit.current : 1
+      }
+    });
+  }
+  
+  // If not in testing mode, execute MarketMirror.sh with the provided ticker and pass environment variables
   exec(`./MarketMirror.sh ${tickerUppercase}`, { 
     timeout: 180000, // Increased timeout to 180 seconds (3 minutes) for web searches
     env: {
