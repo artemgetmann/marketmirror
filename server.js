@@ -35,71 +35,62 @@ const { MongoClient } = require('mongodb');
 // Get MongoDB URI from environment variables
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 
-// Most minimal connection options possible
-// We'll use the simplest approach to avoid SSL issues
-const mongoOptions = {
-  serverSelectionTimeoutMS: 10000, // Faster timeout for quicker fallback to SQLite
-  directConnection: true // Try direct connection instead of SRV discovery
-};
+// SIMPLEST APPROACH: Use MongoDB if available, otherwise SQLite
+// No fancy options, no URI transformation, just the simplest connection possible
+let mongoClient = null;
+let MONGODB_ENABLED = false;
 
-// We need to use the actual server hostnames from the logs
-// The server addresses were found in the error logs
-let MONGODB_URI_TO_USE = MONGODB_URI;
-
-// If we're on Render, use a direct connection to the actual servers
-if (MONGODB_URI && MONGODB_URI.includes('mongodb+srv://')) {
-  // Extract user, password and database name from the SRV URI
-  const match = MONGODB_URI.match(/mongodb\+srv:\/\/([^:]+):([^@]+)@([^/]+)(?:\/([^?]+))?/);
-  
-  if (match) {
-    const [_, user, password, domain, dbName] = match;
-    // These are the specific server addresses found in the error logs
-    // We'll use the first server as the primary connection
-    const server1 = 'ac-djeqwkf-shard-00-00.52dy7ap.mongodb.net';
-    const server2 = 'ac-djeqwkf-shard-00-01.52dy7ap.mongodb.net';
-    const server3 = 'ac-djeqwkf-shard-00-02.52dy7ap.mongodb.net';
-    
-    // Build a connection string with explicit server addresses
-    MONGODB_URI_TO_USE = `mongodb://${user}:${password}@${server1}:27017,${server2}:27017,${server3}:27017/${dbName || 'marketmirror'}?ssl=true&replicaSet=atlas-q6qv9o-shard-0&authSource=admin`;
-    
-    console.log('Using direct server addresses for MongoDB connection');
-  } else {
-    console.log('Could not parse MongoDB SRV URI, using original');
+// Only try MongoDB if a URI is configured
+if (MONGODB_URI && MONGODB_URI !== 'mongodb://localhost:27017') {
+  try {
+    // Try to create a client with minimal options
+    mongoClient = new MongoClient(MONGODB_URI, { 
+      serverSelectionTimeoutMS: 5000 // Fast timeout for quicker fallback
+    });
+    MONGODB_ENABLED = true;
+    console.log('MongoDB client initialized');
+  } catch (err) {
+    console.error('Failed to initialize MongoDB client:', err.message);
+    console.log('Will use SQLite only');
+    MONGODB_ENABLED = false;
   }
+} else {
+  console.log('No MongoDB URI configured, will use SQLite only');
 }
-
-// Create client with options
-const mongoClient = new MongoClient(MONGODB_URI_TO_USE, mongoOptions);
 
 // We'll set these when connection is established
 let mongoDb = null;
 let subscribersCollection = null;
 
-// Try to connect to MongoDB (but don't block server startup if it fails)
+// Simple function to connect to MongoDB (but don't block server startup if it fails)
 async function connectToMongoDB() {
+  // Skip if MongoDB is not enabled
+  if (!MONGODB_ENABLED || !mongoClient) {
+    console.log('MongoDB not enabled - using SQLite only');
+    return;
+  }
+  
   try {
-    // Only attempt connection if URI is configured properly
-    if (MONGODB_URI && MONGODB_URI !== 'mongodb://localhost:27017' && MONGODB_URI.includes('mongodb')) {
-      console.log('Attempting MongoDB connection...');
-      
-      // Connect with configured options
-      await mongoClient.connect();
-      console.log('Connected to MongoDB');
-      
-      // Get database and collection references
-      mongoDb = mongoClient.db(); // Let MongoDB determine the database from the URI
-      subscribersCollection = mongoDb.collection('subscribers');
-      
-      // Verify connection with a simple operation (count documents instead of stats)
-      await subscribersCollection.countDocuments({});
-      console.log('MongoDB collection ready');
-    } else {
-      console.log('No valid MongoDB URI configured - using SQLite only');
-    }
+    console.log('Attempting MongoDB connection...');
+    
+    // Simple connection attempt
+    await mongoClient.connect();
+    console.log('Connected to MongoDB');
+    
+    // Get database and collection
+    mongoDb = mongoClient.db(); 
+    subscribersCollection = mongoDb.collection('subscribers');
+    console.log('MongoDB collection ready');
+    
+    // Quick test to make sure the connection works
+    const count = await subscribersCollection.countDocuments({});
+    console.log(`Found ${count} existing subscribers in MongoDB`);
+    
+    return true;
   } catch (err) {
-    console.error('MongoDB connection error:', err);
-    console.log('Error details:', err.message);
+    console.error('MongoDB connection failed:', err.message);
     console.log('Continuing with SQLite only');
+    return false;
   }
 }
 
