@@ -37,16 +37,13 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 
 // Configure MongoDB connection options for better reliability
 const mongoOptions = {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
   connectTimeoutMS: 30000,
   socketTimeoutMS: 45000,
   serverSelectionTimeoutMS: 60000,
   maxPoolSize: 10,
-  ssl: true,
+  // TLS options
   tls: true,
-  tlsAllowInvalidCertificates: false,
-  tlsAllowInvalidHostnames: false,
+  tlsInsecure: false, // Try this setting for Atlas on Render
 };
 
 // Create client with options
@@ -71,8 +68,8 @@ async function connectToMongoDB() {
       mongoDb = mongoClient.db(); // Let MongoDB determine the database from the URI
       subscribersCollection = mongoDb.collection('subscribers');
       
-      // Verify connection with a simple operation
-      await subscribersCollection.stats();
+      // Verify connection with a simple operation (count documents instead of stats)
+      await subscribersCollection.countDocuments({});
       console.log('MongoDB collection ready');
     } else {
       console.log('No valid MongoDB URI configured - using SQLite only');
