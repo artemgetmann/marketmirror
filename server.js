@@ -35,33 +35,35 @@ const { MongoClient } = require('mongodb');
 // Get MongoDB URI from environment variables
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 
-// Configure MongoDB connection options for better reliability
-// Check if we're running on Render
-const isRender = process.env.RENDER === 'true';
-
-// Different options based on environment
+// Most minimal connection options possible
+// We'll use the simplest approach to avoid SSL issues
 const mongoOptions = {
-  connectTimeoutMS: 30000,
-  socketTimeoutMS: 45000,
-  serverSelectionTimeoutMS: 60000,
-  maxPoolSize: 10,
-  retryWrites: true,
-  w: "majority",
-  
-  // Only use one TLS option, not both (they conflict)
-  ...(isRender ? {
-    // Render-specific options
-    tls: true,
-    tlsInsecure: true, // Use only this one for Render
-    monitorCommands: true
-  } : {
-    // Local development options
-    tls: true
-  })
+  serverSelectionTimeoutMS: 10000, // Faster timeout for quicker fallback to SQLite
+  directConnection: true // Try direct connection instead of SRV discovery
 };
 
+// We will handle the MONGODB_URI differently based on whether it's an SRV URI
+let MONGODB_URI_TO_USE = MONGODB_URI;
+
+// If it's an SRV URI, try to modify it to a direct connection URI
+if (MONGODB_URI && MONGODB_URI.includes('mongodb+srv://')) {
+  console.log('Converting SRV URI to direct connection URI...');
+  // This is a crude transformation and might not work for all SRV URIs
+  // Replace 'mongodb+srv://' with 'mongodb://' and add '?ssl=true'
+  MONGODB_URI_TO_USE = MONGODB_URI
+    .replace('mongodb+srv://', 'mongodb://')
+    .replace('?', '/?');
+  
+  if (!MONGODB_URI_TO_USE.includes('ssl=')) {
+    // Add ssl=true if not already present
+    MONGODB_URI_TO_USE += MONGODB_URI_TO_USE.includes('?') ? '&ssl=true' : '?ssl=true';
+  }
+  
+  console.log('Using direct connection URI instead of SRV');
+}
+
 // Create client with options
-const mongoClient = new MongoClient(MONGODB_URI, mongoOptions);
+const mongoClient = new MongoClient(MONGODB_URI_TO_USE, mongoOptions);
 
 // We'll set these when connection is established
 let mongoDb = null;
