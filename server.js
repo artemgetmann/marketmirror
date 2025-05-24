@@ -91,28 +91,6 @@ const { expressjwt } = require('express-jwt');
 const JWT_SECRET = process.env.JWT_SECRET || 'REDACTED_JWT_SECRET';
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'M@rketM1rr0r-S3cure-P@s$w0rd!';
-
-// Testing mode to avoid API costs
-const TESTING_MODE = process.env.TESTING_MODE === 'true' || true; // Set to true by default for development
-
-// Placeholder data for testing mode
-const PLACEHOLDER_ANALYSIS = {
-  ticker: '[TICKER]',
-  analysis: {
-    summary: 'This is a placeholder analysis for [TICKER]. In testing mode, no actual API calls are made to save costs.',
-    outlook: 'The outlook for [TICKER] appears stable in this simulation.',
-    risks: 'As this is test data, no actual risk analysis is provided.',
-    technicalAnalysis: 'Technical indicators would normally be analyzed here.',
-    fundamentalAnalysis: 'Fundamental metrics like P/E ratio, EPS, and revenue growth would be discussed here.',
-    recommendation: 'This is a placeholder recommendation. In a real analysis, we would provide specific insights.',
-    disclaimer: 'TESTING MODE: This is simulated data and should not be used for investment decisions.'
-  },
-  metadata: {
-    generated: new Date().toISOString(),
-    model: 'gpt-4-test-placeholder',
-    testMode: true
-  }
-};
 const axios = require('axios');
 
 // Session store for conversation memory
@@ -257,10 +235,10 @@ app.get('/cache-status', (req, res) => {
   });
 });
 
-// Configure rate limiter: 2 analysis per day per sessionId or IP 
+// Configure rate limiter: 4 analyses per day per sessionId or IP 
 const analyzeLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 2, // limit each sessionId/IP to 2 analysis per day
+  max: 4, // limit each sessionId/IP to 4 analyses per day
   keyGenerator: (req) => req.headers['x-session-id'] || req.body.sessionId || req.ip,
   handler: (req, res) => {
     // Calculate time until rate limit resets
@@ -274,7 +252,7 @@ const analyzeLimiter = rateLimit({
     res.status(429).json({
       success: false,
       error: '🔥 You have reached your daily analysis limit. Want more? Join the waitlist.',
-      usageLimit: 2, // Set to 2 analysis per day
+      usageLimit: 1, // Set to 1 analysis per day
       resetTime: resetTime,
       resetInSeconds: secondsUntilReset,
       // Include previous analyses they can still access
@@ -451,62 +429,7 @@ app.post('/analyze', analyzeLimiter, followUpLimiter, async (req, res) => {
   
   console.log(`Analyzing ticker: ${tickerUppercase}`);
   
-  // In testing mode, return placeholder data instead of making API call
-  if (TESTING_MODE) {
-    console.log(`[TESTING MODE] Skipping API call for ticker: ${tickerUppercase}`);
-    
-    // Create personalized placeholder with the ticker
-    const placeholderResponse = JSON.parse(JSON.stringify(PLACEHOLDER_ANALYSIS));
-    placeholderResponse.ticker = tickerUppercase;
-    
-    // Replace all instances of [TICKER] with the actual ticker
-    Object.keys(placeholderResponse.analysis).forEach(key => {
-      placeholderResponse.analysis[key] = placeholderResponse.analysis[key].replace(/\[TICKER\]/g, tickerUppercase);
-    });
-    
-    // Add some randomization to make it look different each time
-    const randomTips = [
-      `Consider diversifying your portfolio beyond just ${tickerUppercase}.`,
-      `${tickerUppercase}'s market performance should be viewed in context of the broader sector.`,
-      `Remember that past performance of ${tickerUppercase} is not indicative of future results.`,
-      `${tickerUppercase} might be affected by upcoming market events.`,
-      `Always do your own research before investing in ${tickerUppercase}.`
-    ];
-    
-    placeholderResponse.analysis.recommendation += ' ' + randomTips[Math.floor(Math.random() * randomTips.length)];
-    
-    // Format the analysis for response
-    const analysisText = Object.entries(placeholderResponse.analysis)
-      .map(([key, value]) => `**${key.charAt(0).toUpperCase() + key.slice(1)}**: ${value}`)
-      .join('\n\n');
-      
-    // Cache the analysis
-    if (ENABLE_CACHING) {
-      analysisCache[tickerUppercase] = {
-        analysis: analysisText,
-        timestamp: Date.now(),
-        testMode: true
-      };
-    }
-    
-    // Return the response
-    return res.json({
-      success: true,
-      ticker: tickerUppercase,
-      analysis: analysisText,
-      cached: false,
-      testMode: true,
-      adminBypassUsed: adminBypassUsed,
-      sessionId: sessionId,
-      usageInfo: {
-        usageCount: req.rateLimit ? req.rateLimit.current : 1,
-        usageLimit: 2,
-        remainingUses: req.rateLimit ? 2 - req.rateLimit.current : 1
-      }
-    });
-  }
-  
-  // If not in testing mode, execute MarketMirror.sh with the provided ticker and pass environment variables
+  // Execute MarketMirror.sh with the provided ticker and pass environment variables
   exec(`./MarketMirror.sh ${tickerUppercase}`, { 
     timeout: 180000, // Increased timeout to 180 seconds (3 minutes) for web searches
     env: {
@@ -627,54 +550,6 @@ app.post('/followup', async (req, res) => {
     }).join('\n\n');
     
     // Format the request using the same structure as MarketMirror.sh
-    // In testing mode, return placeholder data instead of making API call
-    if (TESTING_MODE) {
-      console.log(`[TESTING MODE] Skipping API call for ${question}`);
-      
-      // Create personalized placeholder with the ticker
-      const tickerMatch = question.match(/[A-Z]{1,5}/);
-      const ticker = tickerMatch ? tickerMatch[0] : 'STOCK';
-      
-      // Generate a response based on the placeholder
-      const placeholderResponse = JSON.parse(JSON.stringify(PLACEHOLDER_ANALYSIS));
-      placeholderResponse.ticker = ticker;
-      
-      // Replace all instances of [TICKER] with the actual ticker
-      Object.keys(placeholderResponse.analysis).forEach(key => {
-        placeholderResponse.analysis[key] = placeholderResponse.analysis[key].replace(/\[TICKER\]/g, ticker);
-      });
-      
-      // Add some randomization to make it look different each time
-      const randomTips = [
-        `Consider diversifying your portfolio beyond just ${ticker}.`,
-        `${ticker}'s market performance should be viewed in context of the broader sector.`,
-        `Remember that past performance of ${ticker} is not indicative of future results.`,
-        `${ticker} might be affected by upcoming market events.`,
-        `Always do your own research before investing in ${ticker}.`
-      ];
-      
-      placeholderResponse.analysis.recommendation += ' ' + randomTips[Math.floor(Math.random() * randomTips.length)];
-      
-      // Return the placeholder analysis formatted as if it came from the API
-      return {
-        data: {
-          output: [
-            {
-              type: 'message',
-              content: [
-                {
-                  text: Object.entries(placeholderResponse.analysis)
-                    .map(([key, value]) => `**${key.charAt(0).toUpperCase() + key.slice(1)}**: ${value}`)
-                    .join('\n\n')
-                }
-              ]
-            }
-          ]
-        }
-      };
-    }
-    
-    // Actual API call if not in testing mode
     const response = await axios.post(
       'https://api.openai.com/v1/responses',
       {
