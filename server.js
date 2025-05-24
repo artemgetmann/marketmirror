@@ -29,7 +29,39 @@ const axios = require('axios');
 const sessionStore = {};
 const SESSION_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours (same as cache)
 
-// Initialize SQLite database
+// MongoDB setup
+const { MongoClient } = require('mongodb');
+
+// For now, use a test connection string - we'll make this configurable later
+// This points to a local MongoDB server - we'll update to Atlas later
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+const mongoClient = new MongoClient(MONGODB_URI);
+
+// We'll set this when connection is established
+let mongoDb = null;
+let subscribersCollection = null;
+
+// Try to connect to MongoDB (but don't block server startup if it fails)
+async function connectToMongoDB() {
+  try {
+    // Only attempt connection if URI is configured
+    if (MONGODB_URI !== 'mongodb://localhost:27017') {
+      await mongoClient.connect();
+      console.log('Connected to MongoDB');
+      
+      mongoDb = mongoClient.db('marketmirror');
+      subscribersCollection = mongoDb.collection('subscribers');
+      console.log('MongoDB collection ready');
+    } else {
+      console.log('No MongoDB URI configured - using SQLite only');
+    }
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message);
+    console.log('Continuing with SQLite only');
+  }
+}
+
+// Initialize SQLite database (as backup and for local development)
 const db = new Database('marketmirror.db');
 
 // Create subscriptions table if it doesn't exist
@@ -454,15 +486,51 @@ app.post('/subscribe', async (req, res) => {
   }
   
   try {
-    // Insert the email into the database, ignoring if it already exists
-    const stmt = db.prepare(
-      `INSERT OR IGNORE INTO subscriptions(email, session_id, source) 
-       VALUES (?, ?, ?)`
-    );
-    const result = stmt.run(email, sessionId || null, source);
+    let alreadyExists = false;
     
-    if (result.changes === 0) {
-      // Email already exists
+    // First, try to store in SQLite (our reliable local database)
+    try {
+      const stmt = db.prepare(
+        `INSERT OR IGNORE INTO subscriptions(email, session_id, source) 
+         VALUES (?, ?, ?)`
+      );
+      const result = stmt.run(email, sessionId || null, source);
+      
+      // Check if email already existed in SQLite
+      if (result.changes === 0) {
+        alreadyExists = true;
+      }
+    } catch (sqliteErr) {
+      console.error('SQLite error in /subscribe:', sqliteErr);
+      // Continue with MongoDB - don't exit early
+    }
+    
+    // Then, if MongoDB is connected, store there too
+    if (subscribersCollection) {
+      try {
+        // Try to insert into MongoDB
+        const result = await subscribersCollection.updateOne(
+          { email },
+          { 
+            $set: { 
+              email,
+              session_id: sessionId || null,
+              source,
+              created_at: new Date() 
+            } 
+          },
+          { upsert: true }
+        );
+        
+        console.log(`MongoDB: Email ${email} stored/updated`);
+      } catch (mongoErr) {
+        console.error('MongoDB error in /subscribe:', mongoErr);
+        // We already tried SQLite, so just log the error and continue
+      }
+    }
+    
+    // If the email already existed in SQLite, it was already subscribed
+    if (alreadyExists) {
       return res.json({ 
         success: true, 
         message: "👍 You're already on our waitlist. We'll notify you when paid plans launch.",
@@ -470,6 +538,7 @@ app.post('/subscribe', async (req, res) => {
       });
     }
     
+    // Otherwise it's a new subscription
     return res.json({ 
       success: true, 
       message: "👍 You'll be notified when paid plans launch."
@@ -512,13 +581,33 @@ const verifyAdminJWT = (req, res, next) => {
 };
 
 // Endpoint to check subscriptions (admin use)
-app.get('/subscriptions', verifyAdminJWT, (req, res) => {
-  
+app.get('/subscriptions', verifyAdminJWT, async (req, res) => {
   try {
+    // If MongoDB is connected, try to get subscribers from there first
+    if (subscribersCollection) {
+      try {
+        const subscribers = await subscribersCollection.find()
+          .sort({ created_at: -1 })
+          .toArray();
+          
+        console.log(`MongoDB: Retrieved ${subscribers.length} subscribers`);
+        return res.json({
+          count: subscribers.length,
+          subscribers,
+          source: 'mongodb'
+        });
+      } catch (mongoErr) {
+        console.error('MongoDB error in /subscriptions:', mongoErr);
+        // Fall back to SQLite
+      }
+    }
+    
+    // Fall back to SQLite if MongoDB failed or isn't connected
     const subscribers = db.prepare('SELECT * FROM subscriptions ORDER BY created_at DESC').all();
     return res.json({
       count: subscribers.length,
-      subscribers
+      subscribers,
+      source: 'sqlite'
     });
   } catch (err) {
     console.error('Error fetching subscribers:', err);
@@ -526,9 +615,63 @@ app.get('/subscriptions', verifyAdminJWT, (req, res) => {
   }
 });
 
+// Endpoint to export subscribers as CSV (admin use)
+app.get('/admin/export-subscribers', verifyAdminJWT, async (req, res) => {
+  try {
+    // Get all subscribers (try MongoDB first, then SQLite as fallback)
+    let subscribers;
+    let source = 'sqlite';
+    
+    if (subscribersCollection) {
+      try {
+        subscribers = await subscribersCollection.find().sort({ created_at: -1 }).toArray();
+        source = 'mongodb';
+      } catch (mongoErr) {
+        console.error('MongoDB error in export:', mongoErr);
+        // Fall back to SQLite
+        subscribers = db.prepare('SELECT * FROM subscriptions ORDER BY created_at DESC').all();
+      }
+    } else {
+      // Just use SQLite if MongoDB isn't connected
+      subscribers = db.prepare('SELECT * FROM subscriptions ORDER BY created_at DESC').all();
+    }
+    
+    // Create CSV header
+    let csv = 'Email,SessionID,Source,CreatedAt\n';
+    
+    // Add each subscriber to CSV
+    subscribers.forEach(s => {
+      // Clean up values to avoid CSV issues (basic escaping)
+      const email = s.email ? s.email.replace(/"/g, '""') : '';
+      const sessionId = s.session_id || s.sessionId || '';
+      const subSource = s.source || '';
+      const createdAt = s.created_at || '';
+      
+      csv += `"${email}","${sessionId}","${subSource}","${createdAt}"\n`;
+    });
+    
+    // Set headers for file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=marketmirror-subscribers-${Date.now()}.csv`);
+    
+    // Send the CSV data
+    return res.send(csv);
+  } catch (err) {
+    console.error('Error exporting subscribers:', err);
+    return res.status(500).json({ error: 'Failed to export subscribers' });
+  }
+});
+
 // Start the server
+// Connect to MongoDB before starting the server
+connectToMongoDB().catch(err => {
+  console.error('Failed to connect to MongoDB:', err);
+  console.log('Server will continue with SQLite only');
+});
+
 app.listen(port, () => {
   console.log(`MarketMirror API running on port ${port}`);
   console.log(`API key configured: ${process.env.OPENAI_API_KEY ? 'Yes' : 'No'}`);
   console.log(`Caching: ${ENABLE_CACHING ? 'enabled' : 'disabled'}`);
+  console.log(`MongoDB: ${subscribersCollection ? 'connected' : 'not connected (using SQLite only)'}`);
 });
