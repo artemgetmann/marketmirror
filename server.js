@@ -36,14 +36,24 @@ const { MongoClient } = require('mongodb');
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 
 // Configure MongoDB connection options for better reliability
+// Check if we're running on Render
+const isRender = process.env.RENDER === 'true';
+
+// Different options based on environment
 const mongoOptions = {
   connectTimeoutMS: 30000,
   socketTimeoutMS: 45000,
   serverSelectionTimeoutMS: 60000,
   maxPoolSize: 10,
-  // TLS options
+  
+  // TLS options - using more permissive settings on Render
   tls: true,
-  tlsInsecure: false, // Try this setting for Atlas on Render
+  tlsInsecure: isRender, // More permissive on Render
+  tlsAllowInvalidCertificates: isRender,
+  tlsAllowInvalidHostnames: isRender,
+  
+  // Debugging for Render environment
+  ...(isRender && { monitorCommands: true })
 };
 
 // Create client with options
