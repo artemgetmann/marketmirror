@@ -42,24 +42,30 @@ const mongoOptions = {
   directConnection: true // Try direct connection instead of SRV discovery
 };
 
-// We will handle the MONGODB_URI differently based on whether it's an SRV URI
+// We need to use the actual server hostnames from the logs
+// The server addresses were found in the error logs
 let MONGODB_URI_TO_USE = MONGODB_URI;
 
-// If it's an SRV URI, try to modify it to a direct connection URI
+// If we're on Render, use a direct connection to the actual servers
 if (MONGODB_URI && MONGODB_URI.includes('mongodb+srv://')) {
-  console.log('Converting SRV URI to direct connection URI...');
-  // This is a crude transformation and might not work for all SRV URIs
-  // Replace 'mongodb+srv://' with 'mongodb://' and add '?ssl=true'
-  MONGODB_URI_TO_USE = MONGODB_URI
-    .replace('mongodb+srv://', 'mongodb://')
-    .replace('?', '/?');
+  // Extract user, password and database name from the SRV URI
+  const match = MONGODB_URI.match(/mongodb\+srv:\/\/([^:]+):([^@]+)@([^/]+)(?:\/([^?]+))?/);
   
-  if (!MONGODB_URI_TO_USE.includes('ssl=')) {
-    // Add ssl=true if not already present
-    MONGODB_URI_TO_USE += MONGODB_URI_TO_USE.includes('?') ? '&ssl=true' : '?ssl=true';
+  if (match) {
+    const [_, user, password, domain, dbName] = match;
+    // These are the specific server addresses found in the error logs
+    // We'll use the first server as the primary connection
+    const server1 = 'ac-djeqwkf-shard-00-00.52dy7ap.mongodb.net';
+    const server2 = 'ac-djeqwkf-shard-00-01.52dy7ap.mongodb.net';
+    const server3 = 'ac-djeqwkf-shard-00-02.52dy7ap.mongodb.net';
+    
+    // Build a connection string with explicit server addresses
+    MONGODB_URI_TO_USE = `mongodb://${user}:${password}@${server1}:27017,${server2}:27017,${server3}:27017/${dbName || 'marketmirror'}?ssl=true&replicaSet=atlas-q6qv9o-shard-0&authSource=admin`;
+    
+    console.log('Using direct server addresses for MongoDB connection');
+  } else {
+    console.log('Could not parse MongoDB SRV URI, using original');
   }
-  
-  console.log('Using direct connection URI instead of SRV');
 }
 
 // Create client with options
