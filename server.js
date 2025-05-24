@@ -29,6 +29,9 @@ const axios = require('axios');
 const sessionStore = {};
 const SESSION_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours (same as cache)
 
+// Track user's previously analyzed tickers for cached access
+const userAnalysisHistory = {};
+
 // MongoDB setup
 const { MongoClient } = require('mongodb');
 
@@ -164,22 +167,32 @@ app.get('/cache-status', (req, res) => {
   });
 });
 
-// Configure rate limiter: 1 analysis per day per sessionId or IP (for testing)
+// Configure rate limiter: 2 analyses per day per sessionId or IP 
 const analyzeLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 1, // limit each sessionId/IP to 1 analysis per day
-  keyGenerator: (req) => req.body.sessionId || req.ip,
+  max: 2, // limit each sessionId/IP to 2 analyses per day
+  keyGenerator: (req) => req.headers['x-session-id'] || req.body.sessionId || req.ip,
   handler: (req, res) => {
     // Calculate time until rate limit resets
     const resetTime = new Date(req.rateLimit.resetTime).toISOString();
     const secondsUntilReset = Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000);
     
+    // Get session ID and user history
+    const sessionId = req.headers['x-session-id'] || req.body.sessionId || req.ip;
+    const userHistory = Array.from(userAnalysisHistory[sessionId] || []);
+    
     res.status(429).json({
       success: false,
       error: '🔥 You have reached your daily analysis limit. Want more? Join the waitlist.',
-      usageLimit: 1, // Set to 1 analysis per day,
+      usageLimit: 2, // Set to 2 analyses per day
       resetTime: resetTime,
-      resetInSeconds: secondsUntilReset
+      resetInSeconds: secondsUntilReset,
+      // Include previous analyses they can still access
+      accessibleAnalyses: userHistory,
+      canAccessCached: userHistory.length > 0,
+      message: userHistory.length > 0 ? 
+        "You can still access your previous analyses using the same tickers." : 
+        "No previous analyses available. Subscribe to analyze more stocks."
     });
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
@@ -243,7 +256,33 @@ const bypassRateLimitForAdmin = (req, res, next) => {
     }
   }
   
-  // No valid admin token, apply rate limit
+  // Check if this is a request for a cached analysis
+  const ticker = req.body.ticker?.toUpperCase();
+  const sessionId = req.headers['x-session-id'] || req.body.sessionId || req.ip;
+  
+  if (ticker && ENABLE_CACHING) {
+    // Track this ticker in user's history
+    if (!userAnalysisHistory[sessionId]) {
+      userAnalysisHistory[sessionId] = new Set();
+    }
+    
+    // Check if analysis is cached
+    if (analysisCache[ticker] && 
+        (Date.now() - analysisCache[ticker].timestamp < CACHE_EXPIRY)) {
+      
+      // For cached analyses, add to user history and bypass rate limit
+      userAnalysisHistory[sessionId].add(ticker);
+      
+      // If user has already analyzed this ticker, bypass rate limit
+      if (userAnalysisHistory[sessionId].has(ticker)) {
+        console.log(`Bypassing rate limit for cached analysis of ${ticker}`);
+        req.isCachedAnalysis = true;
+        return next();
+      }
+    }
+  }
+  
+  // No valid admin token or cached analysis, apply rate limit
   analyzeLimiter(req, res, next);
 };
 
@@ -251,9 +290,14 @@ const bypassRateLimitForAdmin = (req, res, next) => {
 app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
   // If admin bypass was used, add info to response
   const adminBypassUsed = req.adminBypass === true;
+  const isCachedAnalysis = req.isCachedAnalysis === true;
   console.log('Received request:', req.body);
   
   const { ticker, bypassCache } = req.body;
+  
+  // Get or create a session ID
+  const providedSessionId = req.headers['x-session-id'] || req.body.sessionId;
+  const requestIp = req.ip;
   
   if (!ticker) {
     return res.status(400).json({ error: 'Ticker symbol is required' });
@@ -267,8 +311,14 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
   const tickerUppercase = ticker.toUpperCase();
   const now = Date.now();
   
-  // Generate a session ID for this analysis
-  const sessionId = `session_${tickerUppercase}_${now}`;
+  // Use provided session ID or create a persistent one based on IP
+  const sessionId = providedSessionId || requestIp;
+  
+  // Track this ticker in user's history regardless of cache status
+  if (!userAnalysisHistory[sessionId]) {
+    userAnalysisHistory[sessionId] = new Set();
+  }
+  userAnalysisHistory[sessionId].add(tickerUppercase);
   
   // Serve cached analysis if available, valid, and not bypassed
   if (ENABLE_CACHING && !bypassCache && 
@@ -287,14 +337,24 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
       ]
     };
     
+    // Get user's analysis history
+    const userHistory = Array.from(userAnalysisHistory[sessionId] || []);
+    
     return res.json({ 
       ...analysisCache[tickerUppercase].data, 
       fromCache: true,
       sessionId: sessionId,
+      isCachedAnalysis: isCachedAnalysis,
+      adminBypass: adminBypassUsed,
       usageInfo: {
         usageCount: req.rateLimit?.current || 0,
-        usageLimit: req.rateLimit?.limit || 4,
-        remainingUses: req.rateLimit?.remaining || 4
+        usageLimit: req.rateLimit?.limit || 2,
+        remainingUses: req.rateLimit?.remaining || 2
+      },
+      // Include user's history for frontend use
+      analysisHistory: {
+        accessibleAnalyses: userHistory,
+        count: userHistory.length
       }
     });
   }
@@ -335,12 +395,20 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
       ]
     };
     
+    const userHistory = Array.from(userAnalysisHistory[sessionId] || []);
+    
     const responseData = {
       success: true,
       ticker: tickerUppercase,
       analysis: cleanedAnalysis,
       sessionId: sessionId,
-      fromCache: false
+      fromCache: false,
+      isCachedAnalysis: isCachedAnalysis,
+      // Include user's history for frontend use
+      analysisHistory: {
+        accessibleAnalyses: userHistory,
+        count: userHistory.length
+      }
     };
     
     // Save new analysis in cache if enabled

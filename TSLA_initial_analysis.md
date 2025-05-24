@@ -1,18 +1,18 @@
-| Metric                   | Value        | Commentary / Qualitative Assessment                                                                                                 |
-|--------------------------|-------------|------------------------------------------------------------------------------------------------------------------------------------|
-| P/E (TTM)                | 184.73      | Exceptionally high—reflects extreme growth expectations and market confidence; well above sector average, signals premium pricing.  |
-| P/S                       | 11.29       | Elevated for auto sector; justified only if revenue growth remains exponential—shows market's faith in future sales expansion.      |
-| PEG Ratio                 | 9.45        | Very high—suggests growth may not currently justify the valuation; typically, a PEG under 1 is attractive for growth stocks.       |
-| P/FCF                     | 159.36      | Sky-high—market is pricing in substantial future free cash flow growth; leaves little margin for error in execution.               |
-| P/B                       | 14.49       | Far above traditional automakers; indicates market views Tesla as a tech company, not just a carmaker.                             |
-| ROE                       | 9.16%       | Respectable but not stellar for a "tech" valuation; traditional auto ROE is often lower, but big tech can exceed 20%.              |
-| ROA                       | 5.43%       | Solid for capital-intensive manufacturing; well above legacy automakers, but below top-tier tech firms.                            |
-| Profit Margin             | 6.65%       | Margins are thin relative to tech peers, but strong for auto industry; room for improvement as scale and software mix increase.    |
-| Sales Growth (5Y)         | 34.02%      | Outstanding—Tesla remains in hypergrowth mode; this is the core justification for its valuation multiples.                        |
-| Current Ratio             | 2.00        | Strong liquidity—ample buffer to cover short-term obligations; conservative for a growth company.                                 |
-| Debt/Equity               | 0.18        | Very low leverage; conservative capital structure, reduces bankruptcy risk, enables flexibility.                                   |
-| Insider Ownership         | 12.90%      | High—aligns management with shareholders, signals conviction from leadership (notably Musk).                                       |
-| Insider Transactions      | -0.22%      | Slight net selling; not alarming at this level, but worth monitoring for trend acceleration.                                       |
-| Dividend TTM              | -           | No dividend—consistent with reinvestment in growth; appropriate for a high-growth, high-multiple company.                         |
-| Market Cap                | 1080.48B    | Mega-cap status—ensures liquidity and institutional interest; reflects global leadership in EV/AI narrative.                      |
-| Option/Short              | Yes / Yes   | Highly liquid options and significant short interest—creates potential for volatility and asymmetric moves on news/fear cycles.    |
+| Metric                      | Value      | Commentary / Qualitative Assessment                                                                                         |
+|-----------------------------|------------|---------------------------------------------------------------------------------------------------------------------------|
+| P/E (TTM)                   | 186.61     | Extremely high; market is pricing in aggressive future growth. Much higher than mature automakers, but typical for tech leaders in high-growth phases. |
+| P/S                         | 11.40      | Rich valuation; indicates premium market expectation for future sales expansion and margin improvement.                    |
+| PEG Ratio                   | 9.87       | Well above the ideal (<2); signals that current price far outpaces expected earnings growth. High conviction required.     |
+| P/FCF                       | 160.99     | Suggests the stock is trading at a significant premium to free cash flow; market confidence in future cash generation.     |
+| P/B                         | 14.64      | Reflects strong market belief in Tesla’s intangible assets and future earnings power, not just its book value.             |
+| ROE                         | 9.16%      | Solid, but not spectacular for a tech-driven growth story; room for improvement as scale and efficiencies increase.        |
+| ROA                         | 5.43%      | Decent asset efficiency; higher than legacy auto peers, but below elite tech firms.                                        |
+| Profit Margin               | 6.65%      | Above most traditional automakers, but below top software/tech; shows operating leverage, but still room to expand.        |
+| Sales Growth (5Y)           | 34.02%     | Exceptional growth rate; top-tier even among tech giants, justifies premium multiples if sustainable.                      |
+| Current Ratio               | 2.00       | Strong liquidity; comfortably covers short-term obligations, reducing bankruptcy risk.                                     |
+| Debt/Equity                 | 0.18       | Very low leverage; conservative balance sheet for a growth company, allowing flexibility and resilience.                   |
+| Insider Ownership           | 12.90%     | High for a mega-cap; strong alignment with shareholder interests, signals skin in the game.                                |
+| Insider Transactions        | -0.22%     | Slight net selling; not alarming, but worth monitoring for shifts in insider conviction.                                   |
+| Dividend TTM                | -          | No dividend; standard for high-growth, reinvestment-focused companies.                                                     |
+| Market Cap                  | 1091.49B   | Mega-cap size; liquidity and institutional interest are a given, but limits potential for hypergrowth multiples.           |
+| Option/Short                | Yes / Yes  | Highly liquid options market; significant short interest can amplify moves during fear or euphoria cycles.                 |
