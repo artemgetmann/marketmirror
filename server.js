@@ -45,15 +45,19 @@ const mongoOptions = {
   socketTimeoutMS: 45000,
   serverSelectionTimeoutMS: 60000,
   maxPoolSize: 10,
+  retryWrites: true,
+  w: "majority",
   
-  // TLS options - using more permissive settings on Render
-  tls: true,
-  tlsInsecure: isRender, // More permissive on Render
-  tlsAllowInvalidCertificates: isRender,
-  tlsAllowInvalidHostnames: isRender,
-  
-  // Debugging for Render environment
-  ...(isRender && { monitorCommands: true })
+  // Only use one TLS option, not both (they conflict)
+  ...(isRender ? {
+    // Render-specific options
+    tls: true,
+    tlsInsecure: true, // Use only this one for Render
+    monitorCommands: true
+  } : {
+    // Local development options
+    tls: true
+  })
 };
 
 // Create client with options
