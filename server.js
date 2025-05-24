@@ -32,31 +32,54 @@ const SESSION_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours (same as cache)
 // MongoDB setup
 const { MongoClient } = require('mongodb');
 
-// For now, use a test connection string - we'll make this configurable later
-// This points to a local MongoDB server - we'll update to Atlas later
+// Get MongoDB URI from environment variables
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const mongoClient = new MongoClient(MONGODB_URI);
 
-// We'll set this when connection is established
+// Configure MongoDB connection options for better reliability
+const mongoOptions = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  connectTimeoutMS: 30000,
+  socketTimeoutMS: 45000,
+  serverSelectionTimeoutMS: 60000,
+  maxPoolSize: 10,
+  ssl: true,
+  tls: true,
+  tlsAllowInvalidCertificates: false,
+  tlsAllowInvalidHostnames: false,
+};
+
+// Create client with options
+const mongoClient = new MongoClient(MONGODB_URI, mongoOptions);
+
+// We'll set these when connection is established
 let mongoDb = null;
 let subscribersCollection = null;
 
 // Try to connect to MongoDB (but don't block server startup if it fails)
 async function connectToMongoDB() {
   try {
-    // Only attempt connection if URI is configured
-    if (MONGODB_URI !== 'mongodb://localhost:27017') {
+    // Only attempt connection if URI is configured properly
+    if (MONGODB_URI && MONGODB_URI !== 'mongodb://localhost:27017' && MONGODB_URI.includes('mongodb')) {
+      console.log('Attempting MongoDB connection...');
+      
+      // Connect with configured options
       await mongoClient.connect();
       console.log('Connected to MongoDB');
       
-      mongoDb = mongoClient.db('marketmirror');
+      // Get database and collection references
+      mongoDb = mongoClient.db(); // Let MongoDB determine the database from the URI
       subscribersCollection = mongoDb.collection('subscribers');
+      
+      // Verify connection with a simple operation
+      await subscribersCollection.stats();
       console.log('MongoDB collection ready');
     } else {
-      console.log('No MongoDB URI configured - using SQLite only');
+      console.log('No valid MongoDB URI configured - using SQLite only');
     }
   } catch (err) {
-    console.error('MongoDB connection error:', err.message);
+    console.error('MongoDB connection error:', err);
+    console.log('Error details:', err.message);
     console.log('Continuing with SQLite only');
   }
 }
