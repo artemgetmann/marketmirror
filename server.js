@@ -9,6 +9,74 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const Database = require('better-sqlite3');
 const app = express();
+
+// Track follow-up questions per analysis and per day
+const followUpTracker = new Map();
+
+// Reset follow-up trackers daily
+setInterval(() => {
+  followUpTracker.clear();
+}, 24 * 60 * 60 * 1000); // Clear every 24 hours
+
+// Follow-up question limits
+const FOLLOW_UPS_PER_ANALYSIS = 5;
+const MAX_DAILY_FOLLOW_UPS = 20; // 4 analyses × 5 follow-ups
+
+// Middleware to track and limit follow-up questions
+const followUpLimiter = (req, res, next) => {
+  const sessionId = req.headers['x-session-id'] || req.body.sessionId || req.ip;
+  const ticker = req.body.ticker?.toUpperCase();
+  
+  if (!followUpTracker.has(sessionId)) {
+    followUpTracker.set(sessionId, {
+      totalDaily: 0,
+      perAnalysis: new Map()
+    });
+  }
+
+  const userTracker = followUpTracker.get(sessionId);
+  
+  // Skip limits for admin users
+  if (req.isAdmin) {
+    return next();
+  }
+
+  // Check if it's a follow-up question
+  if (req.body.isFollowUp) {
+    // Check daily limit
+    if (userTracker.totalDaily >= MAX_DAILY_FOLLOW_UPS) {
+      return res.status(429).json({
+        error: 'Daily follow-up question limit reached. Please try again tomorrow.',
+        followUpLimits: {
+          daily: {
+            limit: MAX_DAILY_FOLLOW_UPS,
+            used: userTracker.totalDaily
+          }
+        }
+      });
+    }
+
+    // Check per-analysis limit
+    const analysisCount = userTracker.perAnalysis.get(ticker) || 0;
+    if (analysisCount >= FOLLOW_UPS_PER_ANALYSIS) {
+      return res.status(429).json({
+        error: `Follow-up limit reached for ${ticker}. Please start a new analysis.`,
+        followUpLimits: {
+          perAnalysis: {
+            limit: FOLLOW_UPS_PER_ANALYSIS,
+            used: analysisCount
+          }
+        }
+      });
+    }
+
+    // Increment counters
+    userTracker.totalDaily++;
+    userTracker.perAnalysis.set(ticker, analysisCount + 1);
+  }
+
+  next();
+};
 const port = process.env.PORT || 3000;
 
 // Cache setup
@@ -167,10 +235,10 @@ app.get('/cache-status', (req, res) => {
   });
 });
 
-// Configure rate limiter: 1 analysis per day per sessionId or IP 
+// Configure rate limiter: 4 analyses per day per sessionId or IP 
 const analyzeLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 1, // limit each sessionId/IP to 1 analysis per day
+  max: 4, // limit each sessionId/IP to 4 analyses per day
   keyGenerator: (req) => req.headers['x-session-id'] || req.body.sessionId || req.ip,
   handler: (req, res) => {
     // Calculate time until rate limit resets
@@ -287,7 +355,7 @@ const bypassRateLimitForAdmin = (req, res, next) => {
 };
 
 // Main analysis endpoint with rate limiting
-app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
+app.post('/analyze', analyzeLimiter, followUpLimiter, async (req, res) => {
   // If admin bypass was used, add info to response
   const adminBypassUsed = req.adminBypass === true;
   const isCachedAnalysis = req.isCachedAnalysis === true;
