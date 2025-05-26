@@ -123,7 +123,7 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
               {/* Show accessible analyses if available */}
               {accessibleAnalyses.length > 0 && (
                 <div className="bg-gray-50 p-4 rounded-md">
-                  <p className="font-bold mb-2">You can still view your previous analyses:</p>
+                  <p className="font-medium mb-2">You can still view your previous analyses:</p>
                   {accessibleAnalyses.map(ticker => (
                     <a 
                       key={ticker} 
