@@ -5,7 +5,7 @@ As a financial analyst, please provide an analysis table for TSLA using the foll
 Valuation & Growth:
 - P/E (TTM): 186.61
 - P/S: 11.40
-- PEG Ratio: 9.87
+- PEG Ratio: 10.01
 - P/FCF: 160.99
 - P/B: 14.64
 

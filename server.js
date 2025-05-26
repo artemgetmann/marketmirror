@@ -329,25 +329,28 @@ const bypassRateLimitForAdmin = (req, res, next) => {
   const sessionId = req.headers['x-session-id'] || req.body.sessionId || req.ip;
   
   if (ticker && ENABLE_CACHING) {
-    // Track this ticker in user's history
+    // Initialize user history if needed
     if (!userAnalysisHistory[sessionId]) {
       userAnalysisHistory[sessionId] = new Set();
     }
     
-    // Check if analysis is cached
+    // Check if analysis is cached and still valid
     if (analysisCache[ticker] && 
         (Date.now() - analysisCache[ticker].timestamp < CACHE_EXPIRY)) {
       
-      // For cached analyses, add to user history and bypass rate limit
-      userAnalysisHistory[sessionId].add(ticker);
-      
-      // If user has already analyzed this ticker, bypass rate limit
+      // Check if user has previously analyzed this ticker
       if (userAnalysisHistory[sessionId].has(ticker)) {
         console.log(`Bypassing rate limit for cached analysis of ${ticker}`);
         req.isCachedAnalysis = true;
         return next();
       }
     }
+  }
+  
+  // Track the ticker in user's history for the rate limit error response
+  // to show the available analyses
+  if (ticker && userAnalysisHistory[sessionId]) {
+    userAnalysisHistory[sessionId].add(ticker);
   }
   
   // No valid admin token or cached analysis, apply rate limit

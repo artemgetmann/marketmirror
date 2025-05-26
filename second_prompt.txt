@@ -5,7 +5,7 @@ I have analyzed the financial metrics for TSLA from Finviz with these values:
 Valuation & Growth:
 - P/E (TTM): 186.61
 - P/S: 11.40
-- PEG Ratio: 9.87
+- PEG Ratio: 10.01
 - P/FCF: 160.99
 - P/B: 14.64
 
