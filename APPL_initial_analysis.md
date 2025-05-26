@@ -1,18 +1,18 @@
-| Metric                | Value      | Commentary / Qualitative Assessment                                                                                          |
-|-----------------------|------------|----------------------------------------------------------------------------------------------------------------------------|
-| P/E (TTM)             | N/A        | No price-to-earnings ratio available; could signal negative earnings or recent IPO. For tech giants, a healthy P/E is 20–30.|
-| P/S                   | N/A        | Price-to-sales ratio unavailable; normally, <5 is attractive for large-cap tech. Absence may indicate early-stage status.   |
-| PEG Ratio             | N/A        | PEG (growth-adjusted P/E) not provided. Below 1 is ideal for growth stocks; absence limits growth-adjusted valuation view.  |
-| P/FCF                 | N/A        | Price to free cash flow not listed. Sub-20 is strong for tech; lack of data obscures cash generation efficiency.            |
-| P/B                   | N/A        | Price-to-book missing. For asset-light tech, low P/B is less relevant, but negative equity can be a red flag.               |
-| ROE                   | N/A        | Return on equity not available. >20% is elite for tech. Lack of data clouds profitability assessment.                       |
-| ROA                   | N/A        | Return on assets unavailable. >10% is robust for software; missing value limits asset efficiency insights.                  |
-| Profit Margin         | N/A        | Profit margin not listed. 20%+ is outstanding for large tech; absence leaves profitability uncertain.                       |
-| Sales Growth (5Y)     | N/A        | No 5-year sales growth data. 10%+ CAGR is strong for mature tech; missing metric hides growth trajectory.                   |
-| Current Ratio         | N/A        | Liquidity ratio not available. >1.5 is healthy; lack of data leaves short-term solvency unclear.                            |
-| Debt/Equity           | N/A        | Leverage metric not shown. <1 is conservative; missing value means leverage risk can’t be assessed.                         |
-| Insider Ownership     | N/A        | Not reported. >5% signals strong skin-in-the-game; absence makes alignment hard to judge.                                   |
-| Insider Transactions  | N/A        | Not listed. Insider buying is bullish; lack of info removes this sentiment signal.                                          |
-| Dividend TTM          | No Dividend| No dividend — typical for high-growth tech, as capital is reinvested for expansion.                                         |
-| Market Cap            | N/A        | Not provided. Large-cap status is a must for this strategy; missing value limits liquidity and scale assessment.            |
-| Option/Short          | N/A        | No data. High short interest can signal opportunity if fear is overdone; absence removes this contrarian signal.            |
+| Metric                  | Value      | Commentary/Assessment                                                                                     |
+|-------------------------|------------|----------------------------------------------------------------------------------------------------------|
+| P/E (TTM)               | N/A        | No price-to-earnings data available. Typically, a low P/E signals undervaluation, but absence may mean negative earnings or recent IPO. For tech, high P/E is common if growth is strong. |
+| P/S                     | N/A        | Price-to-sales is missing. For large-cap tech, a P/S under 5 can be attractive if growth is intact. Absence may indicate early-stage company or reporting lag. |
+| PEG Ratio               | N/A        | PEG ratio unavailable. Normally, PEG < 1 signals undervalued growth. Lack of data could mean negative or uncertain earnings forecasts. |
+| P/FCF                   | N/A        | Price-to-free-cash-flow not listed. In tech, <20 is good; absence could mean negative or volatile cash flows—potential risk flag. |
+| P/B                     | N/A        | Price-to-book missing. For asset-light tech, P/B is less relevant, but N/A could signal intangible-heavy balance sheet or recent losses. |
+| ROE                     | N/A        | Return on equity unavailable. High ROE (>20%) is ideal for tech giants, so N/A suggests either negative equity or early-stage losses. |
+| ROA                     | N/A        | Return on assets missing. For capital-light models, 5%+ is solid. N/A may mean negative net income or asset base shifts. |
+| Profit Margin           | N/A        | Not provided. High margins (>20%) are a hallmark of dominant tech. N/A could mean unprofitability or early-stage reinvestment. |
+| Sales Growth (5Y)       | N/A        | No five-year sales growth data. Sustained double-digit growth is the gold standard for large-cap tech. N/A may indicate new listing or volatile history. |
+| Current Ratio           | N/A        | Liquidity ratio missing. >1.5 is healthy for tech, but N/A could mean insufficient liquidity disclosure—a risk factor. |
+| Debt/Equity             | N/A        | Leverage ratio unavailable. For growth tech, <1 is prudent. N/A might indicate negative equity or unconventional capital structure. |
+| Insider Ownership       | N/A        | Not listed. High insider ownership (>5%) aligns management with shareholders. N/A could mean recent IPO or lack of filings. |
+| Insider Transactions    | N/A        | No data. Insider buying is bullish; selling can be neutral or negative. N/A means no recent activity or limited reporting. |
+| Dividend TTM            | No Dividend| No dividend is typical for high-growth tech focused on reinvestment, but signals reliance on capital gains for returns. |
+| Market Cap              | N/A        | Not disclosed. Large-cap status is key for liquidity and stability. N/A could mean small/new company or reporting lag. |
+| Option/Short            | N/A        | No data. High short interest can signal negative sentiment (potential contrarian opportunity). N/A means no options or limited trading. |
