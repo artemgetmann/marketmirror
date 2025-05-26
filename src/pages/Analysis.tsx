@@ -209,17 +209,16 @@ const Analysis = () => {
             setAccessibleAnalyses(err.accessibleAnalyses);
           }
           
-          // Show email modal if this is not an accessible ticker
-          if (!err.accessibleAnalyses?.includes(ticker)) {
-            setShowEmailModal(true);
-          } else {
-            // This ticker is in accessible analyses, try to get it from cache
+          // Always show email modal for rate limits
+          setShowEmailModal(true);
+          
+          // If this ticker is in accessible analyses, try to get it from cache
+          if (err.accessibleAnalyses?.includes(ticker)) {
             try {
               const cachedResult = await fetchAnalysis(ticker);
               return cachedResult;
             } catch (innerErr) {
-              // Still show the modal if we fail to get the cached analysis
-              setShowEmailModal(true);
+              // Just throw the error if we can't get cached analysis
               throw innerErr;
             }
           }
@@ -614,7 +613,7 @@ const Analysis = () => {
           </div>
         )}
 
-        {isError && (
+        {isError && !isRateLimited && (
           <div className="rounded-2xl bg-gray-50 shadow-xl p-8 mt-6 max-w-xl mx-auto space-y-8">
             <div className="flex flex-col items-center">
               <div className="w-10 h-10 flex items-center justify-center mb-6">
@@ -623,37 +622,17 @@ const Analysis = () => {
                 </svg>
               </div>
               <h3 className="text-2xl font-semibold tracking-tight text-gray-900">
-                You've Reached Today's Limit
+                Error Retrieving Analysis
               </h3>
             </div>
 
             <div className="space-y-6 text-left">
               <p className="text-base text-gray-700 leading-relaxed">
-                You've used all your free analyses for today. That's what happens when clarity spreads faster than Wall Street can stop it.
-              </p>
-              
-              {/* Show accessible analyses if available */}
-              {accessibleAnalyses.length > 0 && (
-                <AccessibleAnalyses 
-                  tickers={accessibleAnalyses}
-                  resetTime={rateLimitInfo?.resetTime?.toISOString()}
-                  resetInSeconds={rateLimitInfo?.resetInSeconds}
-                  message="You can still access these previously analyzed tickers:" 
-                />
-              )}
-              
-              <div className="space-y-1">
-                <p className="text-gray-500 italic">They said: "People need advisors."</p>
-                <p className="text-gray-900 font-medium">We asked: "Why?"</p>
-              </div>
-              
-              <p className="text-base text-gray-700">
-                MarketMirror is the rebellion.<br/>
-                Not built for institutions. Built for people who think for themselves.
+                We encountered an error while retrieving your analysis. Please try again later.
               </p>
               
               <p className="text-base text-gray-700">
-                Help us replace legacy with logic.
+                If this problem persists, please contact support.
                 {/* Hidden developer access - double click on the last period will open admin modal */}
                 <span 
                   onDoubleClick={() => setShowAdminModal(true)} 
@@ -664,14 +643,13 @@ const Analysis = () => {
             </div>
             
             <div>
-              <p className="text-sm text-gray-500 mb-4 text-center">Join the movement</p>
               <Button
-                onClick={() => setShowEmailModal(true)}
-                variant="default"
+                onClick={() => window.location.reload()}
+                variant="outline"
                 size="default"
-                className="w-full bg-black hover:bg-gray-900 text-white rounded-full px-6 py-3 font-medium transition-colors"
+                className="w-full"
               >
-                Get Early Access
+                Try Again
               </Button>
             </div>
           </div>

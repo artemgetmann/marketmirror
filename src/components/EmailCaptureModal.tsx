@@ -31,8 +31,12 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
   
   if (!isOpen) return null;
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!email) {
+      setError('Please enter your email address');
+      return;
+    }
+    
     setIsSubmitting(true);
     setError('');
     
@@ -92,12 +96,15 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
-        <div className="flex justify-between items-start mb-8">
+        <div className="flex justify-between items-start mb-6">
           <h3 className="text-xl font-semibold tracking-tight text-gray-900">
-            {isSubmitted ? 'Welcome to the Rebellion' : 'Be First. Not Institutional.'}
+            {isSubmitted ? 'Welcome to the Rebellion' : 'You\'ve Reached Today\'s Limit'}
           </h3>
           <button 
-            onClick={onClose}
+            onClick={() => {
+              onClose();
+              window.location.href = '/';
+            }}
             className="text-gray-400 hover:text-gray-600 focus:outline-none"
             aria-label="Close modal"
           >
@@ -107,59 +114,68 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
         
         {!isSubmitted ? (
           <>
-            <div className="mt-4 text-gray-700 leading-relaxed">
+            <div className="space-y-5 text-gray-700">
               <p>
-                Wall Street hides clarity behind overpriced advice.<br/>
-                We're opening the door.
+                That's what happens when clarity spreads faster<br/>
+                than Wall Street can stop it.
               </p>
               
               {/* Show accessible analyses if available */}
               {accessibleAnalyses.length > 0 && (
-                <div className="my-4">
-                  <AccessibleAnalyses 
-                    tickers={accessibleAnalyses}
-                    resetTime={resetTime?.toISOString()}
-                    resetInSeconds={resetInSeconds}
-                    message="You can still access your previous analyses:" 
-                  />
+                <div className="bg-gray-50 p-4 rounded-md">
+                  <p className="font-bold mb-2">You can still view your previous analyses:</p>
+                  {accessibleAnalyses.map(ticker => (
+                    <a 
+                      key={ticker} 
+                      href={`/analysis/${ticker}`} 
+                      className="inline-block bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-full px-4 py-1 font-bold text-sm"
+                      onClick={() => onClose()}
+                    >
+                      {ticker.toUpperCase()}
+                    </a>
+                  ))[0]}
+                  <p className="text-xs text-gray-500 mt-2">
+                    Limit resets in about 23 hours
+                  </p>
                 </div>
               )}
               
-              <p className="mt-3">
-                Drop your email, get early access to unlimited analyses.<br/>
-                Help us replace legacy with logic.
+              <div className="space-y-1">
+                <p>They said: <span className="text-gray-500">"People need advisors."</span></p>
+                <p><span className="font-bold">We asked:</span> "Why?"</p>
+              </div>
+              
+              <p className="pb-2">
+                MarketMirror is the rebellion.<br/>
+                Not built for institutions. Built for people who think for themselves.
               </p>
             </div>
 
-            <form onSubmit={handleSubmit} className="mt-6">
-              <div>
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 text-base"
-                />
-              </div>
+            <div className="mt-5 space-y-4">
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                required
+                className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500 rounded-md text-base"
+              />
               
               {error && (
                 <p className="text-red-600 text-sm">{error}</p>
               )}
               
-              <div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="mt-4 w-full bg-black text-white py-3 rounded-full font-medium hover:bg-gray-900 transition"
-                >
-                  {isSubmitting ? 'Processing...' : 'Join the Rebellion'}
-                </button>
-              </div>
-            </form>
-
-            <p className="mt-6 text-xs text-gray-500 text-center">Your free quota resets at midnight.</p>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="w-full bg-black text-white py-2.5 rounded-full font-medium hover:bg-gray-900 transition"
+              >
+                {isSubmitting ? 'Processing...' : 'Join the Rebellion'}
+              </button>
+              
+              <p className="text-xs text-gray-500 text-center">Help us replace legacy with logic.</p>
+            </div>
           </>
         ) : (
           <div className="space-y-6">
