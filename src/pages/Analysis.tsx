@@ -3,7 +3,9 @@ import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
-import { generateOrRetrieveSessionId, saveUsageInfo, getUsageInfo } from "@/lib/session";
+import { generateOrRetrieveSessionId, saveUsageInfo, getUsageInfo, saveAccessibleAnalyses, getAccessibleAnalyses, addToAccessibleAnalyses } from "@/lib/session";
+import AccessibleAnalyses from "@/components/AccessibleAnalyses";
+import AnalysisHistory from "@/components/AnalysisHistory";
 import { getAuthHeaders, isAdminAuthenticated } from "@/lib/adminAuth";
 import EmailCaptureModal from "@/components/EmailCaptureModal";
 import AdminLogin from "@/components/AdminLogin";
@@ -35,9 +37,20 @@ interface AnalysisData {
   ticker: string;
   analysis: string;
   fromCache?: boolean;
+  isCachedAnalysis?: boolean;
   error?: string;
   sessionId?: string;
   usageInfo?: UsageInfo;
+  analysisHistory?: {
+    accessibleAnalyses: string[];
+    count: number;
+  };
+  accessibleAnalyses?: string[];
+  canAccessCached?: boolean;
+  message?: string;
+  resetTime?: string;
+  resetInSeconds?: number;
+  usageLimit?: number;
 }
 
 interface FetchAnalysisOptions {
@@ -54,50 +67,81 @@ const fetchAnalysis = async (
   // Get admin auth headers if available
   const authHeaders = getAuthHeaders();
   
-  const response = await fetch(
-    "https://marketmirror-api.onrender.com/analyze",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...authHeaders, // Include admin token if available
+  try {
+    const response = await fetch(
+      "https://marketmirror-api.onrender.com/analyze",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders, // Include admin token if available
+        },
+        body: JSON.stringify({
+          ticker,
+          bypassCache: options?.bypassCache,
+          sessionId, // Include sessionId in requests
+        }),
       },
-      body: JSON.stringify({
-        ticker,
-        bypassCache: options?.bypassCache,
-        sessionId, // Include sessionId in requests
-      }),
-    },
-  );
+    );
+    
+    // Handle rate limit response specifically (status 429)
+    if (response.status === 429) {
+      const errorData = await response.json();
+      
+      // If we have accessible analyses with our rate limit error
+      if (errorData.accessibleAnalyses && Array.isArray(errorData.accessibleAnalyses)) {
+        // Store accessible analyses for later use
+        saveAccessibleAnalyses(errorData.accessibleAnalyses);
+        
+        // Add our own flag to identify rate limit errors with accessible analyses
+        throw {
+          ...errorData,
+          isRateLimited: true,
+          status: 429
+        };
+      }
+      
+      // Standard rate limit error without accessible analyses
+      throw new Error(errorData.error || "You've reached your daily limit");
+    }
+    
+    // For other error responses
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to fetch analysis");
+    }
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Failed to fetch analysis");
+    // Process successful response
+    const data = await response.json();
+
+    // Ensure sessionId is included in the response data
+    if (!data.sessionId) {
+      console.warn("No session ID returned from API");
+    }
+    
+    // If usage info is provided, store it
+    if (data.usageInfo) {
+      saveUsageInfo(data.usageInfo);
+    }
+    
+    // Store the ticker in accessible analyses (both from history and the current ticker)
+    if (data.analysisHistory?.accessibleAnalyses) {
+      saveAccessibleAnalyses(data.analysisHistory.accessibleAnalyses);
+    } else {
+      // Always add the current ticker to accessible analyses on successful analysis
+      addToAccessibleAnalyses(ticker);
+    }
+
+    return data;
+  } catch (error) {
+    // If this is our custom rate limit error with accessible analyses, rethrow it
+    if (error && typeof error === 'object' && 'isRateLimited' in error) {
+      throw error;
+    }
+    
+    // Otherwise, rethrow the original error
+    throw error;
   }
-
-  const data = await response.json();
-
-  // Ensure sessionId is included in the response data
-  if (!data.sessionId) {
-    console.warn("No session ID returned from API");
-  }
-  
-  // If usage info is provided, store it
-  if (data.usageInfo) {
-    saveUsageInfo(data.usageInfo);
-  } else {
-    // For backward compatibility/testing - create mock usage info
-    // This would be removed once the backend provides real usage data
-    const mockUsageInfo = {
-      usageCount: 2,
-      usageLimit: 5,
-      remainingUses: 3
-    };
-    data.usageInfo = mockUsageInfo;
-    saveUsageInfo(mockUsageInfo);
-  }
-
-  return data;
 };
 
 const Analysis = () => {
@@ -109,6 +153,9 @@ const Analysis = () => {
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [rateLimitInfo, setRateLimitInfo] = useState<{resetTime?: Date; resetInSeconds?: number} | null>(null);
   const [usageInfo, setUsageInfo] = useState<UsageInfo | null>(getUsageInfo());
+  const [accessibleAnalyses, setAccessibleAnalyses] = useState<string[]>(getAccessibleAnalyses());
+  const [isRateLimited, setIsRateLimited] = useState<boolean>(false);
+  const [rateLimitMessage, setRateLimitMessage] = useState<string>("");
   const [isAdmin, setIsAdmin] = useState<boolean>(isAdminAuthenticated());
   const analysisRef = useRef<HTMLDivElement>(null);
   const chatSectionRef = useRef<HTMLDivElement>(null);
@@ -117,7 +164,13 @@ const Analysis = () => {
     queryKey: ["analysis", ticker],
     queryFn: async () => {
       try {
+        // Reset rate limit state on each new query
+        setIsRateLimited(false);
+        setRateLimitMessage("");
+        
+        // Attempt to fetch the analysis
         const result = await fetchAnalysis(ticker);
+        
         // Update usage info when we get new data
         if (result.usageInfo) {
           setUsageInfo(result.usageInfo);
@@ -128,27 +181,66 @@ const Analysis = () => {
               resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
               resetInSeconds: 24 * 60 * 60
             });
-            setShowEmailModal(true);
-            throw new Error("Usage limit reached");
           }
         }
+        
+        // Update accessible analyses if provided in the response
+        if (result.analysisHistory?.accessibleAnalyses) {
+          setAccessibleAnalyses(result.analysisHistory.accessibleAnalyses);
+        }
+        
         return result;
       } catch (err: any) {
-        // Check if this is a rate limit error
-        if (err.status === 429 && err.resetTime) {
-          // Show email collection modal
+        // Check if this is our custom rate limit error with accessible analyses
+        if (err && typeof err === 'object' && 'isRateLimited' in err) {
+          // Set rate limit info for UI display
+          setIsRateLimited(true);
+          setRateLimitMessage(err.message || 'You have reached your daily limit');
+          
+          if (err.resetTime) {
+            setRateLimitInfo({
+              resetTime: new Date(err.resetTime),
+              resetInSeconds: err.resetInSeconds
+            });
+          }
+          
+          // Update accessible analyses from the error response
+          if (err.accessibleAnalyses && Array.isArray(err.accessibleAnalyses)) {
+            setAccessibleAnalyses(err.accessibleAnalyses);
+          }
+          
+          // Show email modal if this is not an accessible ticker
+          if (!err.accessibleAnalyses?.includes(ticker)) {
+            setShowEmailModal(true);
+          } else {
+            // This ticker is in accessible analyses, try to get it from cache
+            try {
+              const cachedResult = await fetchAnalysis(ticker);
+              return cachedResult;
+            } catch (innerErr) {
+              // Still show the modal if we fail to get the cached analysis
+              setShowEmailModal(true);
+              throw innerErr;
+            }
+          }
+        } else if (err.status === 429 || (typeof err.message === 'string' && err.message.includes("limit"))) {
+          // Generic rate limit error (for backward compatibility)
           setRateLimitInfo({
-            resetTime: new Date(err.resetTime),
-            resetInSeconds: err.resetInSeconds
+            resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+            resetInSeconds: 24 * 60 * 60
           });
           setShowEmailModal(true);
-        } else if (typeof err.message === 'string' && err.message.includes("limit")) {
-          // Already handled above
         } else {
-          // For other errors, still show modal but with different messaging
+          // For other errors, show error toast and the email modal
+          toast({
+            title: "Error Fetching Analysis",
+            description: err.message || "An error occurred",
+            variant: "destructive",
+          });
           setRateLimitInfo(null);
           setShowEmailModal(true);
         }
+        
         throw err;
       }
     },
@@ -501,9 +593,19 @@ const Analysis = () => {
       </div>
 
       <div className="max-w-4xl mx-auto w-full">
-        <div className="mb-8">
-          <h2 className="text-3xl font-medium">{ticker} Analysis</h2>
+        <div className="mb-6">
+          <h2 className="text-3xl font-medium">{ticker.toUpperCase()} Analysis</h2>
         </div>
+        
+        {/* Show analysis history for easy navigation */}
+        {accessibleAnalyses.length > 0 && (
+          <div className="mb-6">
+            <AnalysisHistory 
+              tickers={accessibleAnalyses} 
+              currentTicker={ticker} 
+            />
+          </div>
+        )}
 
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-16">
@@ -529,6 +631,16 @@ const Analysis = () => {
               <p className="text-base text-gray-700 leading-relaxed">
                 You've used all your free analyses for today. That's what happens when clarity spreads faster than Wall Street can stop it.
               </p>
+              
+              {/* Show accessible analyses if available */}
+              {accessibleAnalyses.length > 0 && (
+                <AccessibleAnalyses 
+                  tickers={accessibleAnalyses}
+                  resetTime={rateLimitInfo?.resetTime?.toISOString()}
+                  resetInSeconds={rateLimitInfo?.resetInSeconds}
+                  message="You can still access these previously analyzed tickers:" 
+                />
+              )}
               
               <div className="space-y-1">
                 <p className="text-gray-500 italic">They said: "People need advisors."</p>

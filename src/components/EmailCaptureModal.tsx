@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { generateOrRetrieveSessionId } from '@/lib/session';
+import { generateOrRetrieveSessionId, getAccessibleAnalyses } from '@/lib/session';
+import AccessibleAnalyses from './AccessibleAnalyses';
 
 interface EmailCaptureModalProps {
   isOpen: boolean;
@@ -19,6 +20,14 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [accessibleAnalyses, setAccessibleAnalyses] = useState<string[]>([]);
+  
+  // Load accessible analyses when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setAccessibleAnalyses(getAccessibleAnalyses());
+    }
+  }, [isOpen]);
   
   if (!isOpen) return null;
   
@@ -103,6 +112,19 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
                 Wall Street hides clarity behind overpriced advice.<br/>
                 We're opening the door.
               </p>
+              
+              {/* Show accessible analyses if available */}
+              {accessibleAnalyses.length > 0 && (
+                <div className="my-4">
+                  <AccessibleAnalyses 
+                    tickers={accessibleAnalyses}
+                    resetTime={resetTime?.toISOString()}
+                    resetInSeconds={resetInSeconds}
+                    message="You can still access your previous analyses:" 
+                  />
+                </div>
+              )}
+              
               <p className="mt-3">
                 Drop your email, get early access to unlimited analyses.<br/>
                 Help us replace legacy with logic.
