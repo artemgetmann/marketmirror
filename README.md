@@ -11,7 +11,7 @@ Health check endpoint
 Returns the current caching status and information about cached tickers
 
 ### POST /analyze
-Analyzes a stock based on the provided ticker symbol. This endpoint has rate limiting applied.
+Analyzes a stock based on the provided ticker symbol. This endpoint has rate limiting applied (1 analysis per day per user).
 
 #### Request body
 ```json
@@ -113,6 +113,34 @@ Authorization: Bearer [jwt-token]
 }
 ```
 
+### POST /followup
+Allows users to ask follow-up questions about a previously analyzed stock. This endpoint requires a valid sessionId from a prior analysis.
+
+#### Request body
+```json
+{
+  "question": "What about their dividend yield?",
+  "sessionId": "unique-user-session-id"
+}
+```
+
+#### Success Response
+```json
+{
+  "answer": "... detailed answer to follow-up question ...",
+  "sessionId": "unique-user-session-id",
+  "ticker": "AAPL"
+}
+```
+
+#### Session Expired Response
+```json
+{
+  "error": "Session not found or expired. Please perform a new analysis.",
+  "sessionExpired": true
+}
+```
+
 ## Mock API Mode for Testing
 
 The API includes a testing mode that returns mock responses instead of making real API calls. This is useful for development and testing without consuming OpenAI API credits.
@@ -126,9 +154,10 @@ MOCK_API_CALLS=true/false
 
 When enabled:
 - All `/analyze` requests will return pre-defined mock analyses
-- All `/followup` requests will return realistic mock responses
+- All `/followup` requests will return realistic mock responses based on question patterns
 - No OpenAI API calls will be made
 - Rate limiting and caching still function normally
+- API key configuration is not required
 
 ### Response Format
 
