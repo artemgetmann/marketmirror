@@ -36,7 +36,7 @@ const sessionStore = {};
 const SESSION_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours (same as cache)
 
 // Follow-up question limits
-const MAX_FOLLOWUPS_PER_TICKER = 5; // Maximum follow-up questions per ticker analysis
+const MAX_FOLLOWUPS_PER_TICKER = 3; // Maximum follow-up questions per ticker analysis
 
 // Track user's previously analyzed tickers for cached access
 const userAnalysisHistory = {};
