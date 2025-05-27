@@ -35,6 +35,9 @@ const axios = require('axios');
 const sessionStore = {};
 const SESSION_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours (same as cache)
 
+// Follow-up question limits
+const MAX_FOLLOWUPS_PER_TICKER = 5; // Maximum follow-up questions per ticker analysis
+
 // Track user's previously analyzed tickers for cached access
 const userAnalysisHistory = {};
 
@@ -380,6 +383,7 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
     sessionStore[sessionId] = {
       ticker: tickerUppercase,
       timestamp: now,
+      followupCount: 0, // Initialize follow-up counter
       messages: [
         { role: 'system', content: ARTEM_PROMPT },
         { role: 'user', content: `Analyze ${tickerUppercase} stock` },
@@ -459,6 +463,7 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
     sessionStore[sessionId] = {
       ticker: tickerUppercase,
       timestamp: now,
+      followupCount: 0, // Initialize follow-up counter
       messages: [
         { role: 'system', content: ARTEM_PROMPT },
         { role: 'user', content: `Analyze ${tickerUppercase} stock` },
@@ -540,6 +545,16 @@ app.post('/followup', async (req, res) => {
     });
   }
   
+  // Check if user has reached follow-up question limit
+  if (sessionStore[sessionId].followupCount >= MAX_FOLLOWUPS_PER_TICKER) {
+    return res.status(429).json({
+      error: 'You have reached the maximum number of follow-up questions for this analysis.',
+      followupLimit: MAX_FOLLOWUPS_PER_TICKER,
+      ticker: sessionStore[sessionId].ticker,
+      message: 'Please start a new analysis to ask more questions.'
+    });
+  }
+  
   try {
     // Get session conversation history
     const messageHistory = [...sessionStore[sessionId].messages];
@@ -557,16 +572,34 @@ app.post('/followup', async (req, res) => {
       // Get mock response based on the question and ticker
       const mockAnswer = getMockFollowupResponse(question, ticker);
       
+      // Make sure followupCount is initialized
+      if (sessionStore[sessionId].followupCount === undefined) {
+        console.log(`Initializing missing followupCount for session ${sessionId}`);
+        sessionStore[sessionId].followupCount = 0;
+      }
+      
+      // Debug log the current count
+      console.log(`Current followupCount: ${sessionStore[sessionId].followupCount} for session ${sessionId}`);
+      
       // Update the session with both the question and answer
       messageHistory.push({ role: 'assistant', content: mockAnswer });
       sessionStore[sessionId].messages = messageHistory;
       sessionStore[sessionId].timestamp = Date.now(); // Refresh session time
+      sessionStore[sessionId].followupCount++; // Increment follow-up counter
+      
+      // Debug log the new count
+      console.log(`New followupCount: ${sessionStore[sessionId].followupCount} for session ${sessionId}`);
       
       return res.json({ 
         answer: mockAnswer,
         sessionId: sessionId,
         ticker: ticker,
         testMode: true,
+        followupInfo: {
+          followupCount: sessionStore[sessionId].followupCount,
+          followupLimit: MAX_FOLLOWUPS_PER_TICKER,
+          remainingFollowups: MAX_FOLLOWUPS_PER_TICKER - sessionStore[sessionId].followupCount
+        },
         usageInfo: {
           usageCount: req.rateLimit?.current || 0,
           usageLimit: req.rateLimit?.limit || 4,
@@ -637,15 +670,33 @@ app.post('/followup', async (req, res) => {
     
     const cleanedAnswer = cleanAnalysisText(aiAnswer);
     
+    // Make sure followupCount is initialized
+    if (sessionStore[sessionId].followupCount === undefined) {
+      console.log(`Initializing missing followupCount for session ${sessionId}`);
+      sessionStore[sessionId].followupCount = 0;
+    }
+    
+    // Debug log the current count
+    console.log(`Current followupCount: ${sessionStore[sessionId].followupCount} for session ${sessionId}`);
+    
     // Update the session with both the question and answer
     messageHistory.push({ role: 'assistant', content: cleanedAnswer });
     sessionStore[sessionId].messages = messageHistory;
     sessionStore[sessionId].timestamp = Date.now(); // Refresh session time
+    sessionStore[sessionId].followupCount++; // Increment follow-up counter
+    
+    // Debug log the new count
+    console.log(`New followupCount: ${sessionStore[sessionId].followupCount} for session ${sessionId}`);
     
     return res.json({ 
       answer: cleanedAnswer,
       sessionId: sessionId,
       ticker: sessionStore[sessionId].ticker,
+      followupInfo: {
+        followupCount: sessionStore[sessionId].followupCount,
+        followupLimit: MAX_FOLLOWUPS_PER_TICKER,
+        remainingFollowups: MAX_FOLLOWUPS_PER_TICKER - sessionStore[sessionId].followupCount
+      },
       usageInfo: {
         usageCount: req.rateLimit?.current || 0,
         usageLimit: req.rateLimit?.limit || 4,

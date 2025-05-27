@@ -197,7 +197,28 @@ For testing purposes, you can bypass the cache for specific requests by setting 
 
 ## Rate Limiting
 
-The API limits users to 1 stock analysis per day (configurable to 4 in production) based on their session ID or IP address. This helps control API usage costs while providing a reasonable free tier.
+The API implements two types of rate limits to control API usage costs:
+
+### Analysis Rate Limiting
+
+Users are limited to 4 stock analyses per day based on their session ID or IP address. This provides a reasonable free tier while controlling API costs.
+
+### Follow-up Question Rate Limiting
+
+Each stock analysis session is limited to 5 follow-up questions. Once this limit is reached, users will need to start a new analysis to ask more questions.
+
+The follow-up response includes information about the remaining questions:
+
+```json
+{
+  "answer": "... answer to follow-up question ...",
+  "followupInfo": {
+    "followupCount": 2,
+    "followupLimit": 5,
+    "remainingFollowups": 3
+  }
+}
+```
 
 ## Admin Authentication
 
