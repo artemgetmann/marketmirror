@@ -113,6 +113,37 @@ Authorization: Bearer [jwt-token]
 }
 ```
 
+## Mock API Mode for Testing
+
+The API includes a testing mode that returns mock responses instead of making real API calls. This is useful for development and testing without consuming OpenAI API credits.
+
+### Configuration
+
+Mock API mode can be enabled/disabled using the environment variable:
+```
+MOCK_API_CALLS=true/false
+```
+
+When enabled:
+- All `/analyze` requests will return pre-defined mock analyses
+- All `/followup` requests will return realistic mock responses
+- No OpenAI API calls will be made
+- Rate limiting and caching still function normally
+
+### Response Format
+
+Mock responses include a `testMode: true` flag to indicate they're from the mock system:
+
+```json
+{
+  "success": true,
+  "ticker": "AAPL",
+  "analysis": "... mock stock analysis ...",
+  "testMode": true,
+  ...
+}
+```
+
 ## Caching
 
 The API implements caching of stock analyses for 24 hours to reduce API call costs and improve response time. Cached analyses are stored in memory and served for subsequent requests for the same ticker.

@@ -3,6 +3,9 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 
+// Import mock responses for testing mode
+const { getMockAnalysis, getMockFollowupResponse } = require('./mock-responses');
+
 const express = require('express');
 const { exec } = require('child_process');
 const cors = require('cors');
@@ -16,6 +19,9 @@ const analysisCache = {};
 const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // Environment variables
 const ENABLE_CACHING = (process.env.ENABLE_CACHING || 'true').toLowerCase() === 'true';
 const API_KEY = process.env.OPENAI_API_KEY || '';
+
+// Test mode configuration - read from environment variable
+const MOCK_API_CALLS = (process.env.MOCK_API_CALLS || 'false').toLowerCase() === 'true';
 
 // JWT authentication setup
 const jwt = require('jsonwebtoken');
@@ -31,6 +37,8 @@ const SESSION_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours (same as cache)
 
 // Track user's previously analyzed tickers for cached access
 const userAnalysisHistory = {};
+
+
 
 // MongoDB setup
 const { MongoClient } = require('mongodb');
@@ -303,8 +311,8 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Ticker symbol is required' });
   }
   
-  // Check API key before executing script
-  if (!process.env.OPENAI_API_KEY) {
+  // Check API key before executing script (only in non-mock mode)
+  if (!MOCK_API_CALLS && !process.env.OPENAI_API_KEY) {
     return res.status(500).json({ error: 'API key not configured on server' });
   }
   
@@ -361,7 +369,70 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
   
   console.log(`Analyzing ticker: ${tickerUppercase}`);
   
-  // Execute MarketMirror.sh with the provided ticker and pass environment variables
+  // In mock mode, return mock responses instead of making real API calls
+  if (MOCK_API_CALLS) {
+    console.log(`Using mock response for ${tickerUppercase} (MOCK_API_CALLS=true)`);
+    
+    // Get mock analysis for the ticker
+    const mockAnalysis = getMockAnalysis(tickerUppercase);
+    
+    // Create a new session with the initial conversation context
+    sessionStore[sessionId] = {
+      ticker: tickerUppercase,
+      timestamp: now,
+      messages: [
+        { role: 'system', content: ARTEM_PROMPT },
+        { role: 'user', content: `Analyze ${tickerUppercase} stock` },
+        { role: 'assistant', content: mockAnalysis }
+      ]
+    };
+    
+    const userHistory = Array.from(userAnalysisHistory[sessionId] || []);
+    
+    const responseData = {
+      success: true,
+      ticker: tickerUppercase,
+      analysis: mockAnalysis,
+      sessionId: sessionId,
+      fromCache: false,
+      isCachedAnalysis: isCachedAnalysis,
+      testMode: true,
+      // Include user's history for frontend use
+      analysisHistory: {
+        accessibleAnalyses: userHistory,
+        count: userHistory.length
+      }
+    };
+    
+    // Save mock analysis in cache if enabled
+    if (ENABLE_CACHING) {
+      analysisCache[tickerUppercase] = {
+        timestamp: now,
+        data: responseData
+      };
+      console.log(`Cached mock analysis for ${tickerUppercase}`);
+    }
+    
+    // Add usage information to the response
+    if (adminBypassUsed) {
+      responseData.usageInfo = {
+        usageCount: 0,
+        usageLimit: 2,
+        remainingUses: 2,
+        adminBypass: true
+      };
+    } else {
+      responseData.usageInfo = {
+        usageCount: req.rateLimit?.current || 0,
+        usageLimit: req.rateLimit?.limit || 1,
+        remainingUses: req.rateLimit?.remaining || 1
+      };
+    }
+    
+    return res.json(responseData);
+  }
+  
+  // If not in mock mode, execute MarketMirror.sh with the provided ticker
   exec(`./MarketMirror.sh ${tickerUppercase}`, { 
     timeout: 180000, // Increased timeout to 180 seconds (3 minutes) for web searches
     env: {
@@ -455,7 +526,8 @@ app.post('/followup', async (req, res) => {
     return res.status(400).json({ error: 'Session ID is required. Please provide the sessionId from your analysis request.' });
   }
   
-  if (!process.env.OPENAI_API_KEY) {
+  // In non-mock mode, check if API key is configured
+  if (!MOCK_API_CALLS && !process.env.OPENAI_API_KEY) {
     return res.status(500).json({ error: 'API key not configured on server' });
   }
   
@@ -475,6 +547,35 @@ app.post('/followup', async (req, res) => {
     // Add the new user question
     messageHistory.push({ role: 'user', content: question });
     
+    // Get the ticker from the session
+    const ticker = sessionStore[sessionId].ticker;
+    
+    // If in mock mode, use mock follow-up responses
+    if (MOCK_API_CALLS) {
+      console.log(`Using mock follow-up response for question about ${ticker} (MOCK_API_CALLS=true)`);
+      
+      // Get mock response based on the question and ticker
+      const mockAnswer = getMockFollowupResponse(question, ticker);
+      
+      // Update the session with both the question and answer
+      messageHistory.push({ role: 'assistant', content: mockAnswer });
+      sessionStore[sessionId].messages = messageHistory;
+      sessionStore[sessionId].timestamp = Date.now(); // Refresh session time
+      
+      return res.json({ 
+        answer: mockAnswer,
+        sessionId: sessionId,
+        ticker: ticker,
+        testMode: true,
+        usageInfo: {
+          usageCount: req.rateLimit?.current || 0,
+          usageLimit: req.rateLimit?.limit || 4,
+          remainingUses: req.rateLimit?.remaining || 4
+        }
+      });
+    }
+    
+    // For non-mock mode, proceed with actual API call
     // Create context from previous conversation
     const contextFromHistory = messageHistory.map(msg => {
       if (msg.role === 'system') return msg.content;
@@ -774,5 +875,6 @@ app.listen(port, () => {
   console.log(`MarketMirror API running on port ${port}`);
   console.log(`API key configured: ${process.env.OPENAI_API_KEY ? 'Yes' : 'No'}`);
   console.log(`Caching: ${ENABLE_CACHING ? 'enabled' : 'disabled'}`);
+  console.log(`Mock API mode: ${MOCK_API_CALLS ? 'enabled' : 'disabled'}`);
   console.log(`MongoDB: ${subscribersCollection ? 'connected' : 'not connected (using SQLite only)'}`);
 });
