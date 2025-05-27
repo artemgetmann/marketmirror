@@ -178,10 +178,10 @@ app.get('/cache-status', (req, res) => {
   });
 });
 
-// Configure rate limiter: 4 analysis per day per sessionId or IP 
+// Configure rate limiter: 2 analysis per day per sessionId or IP 
 const analyzeLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
-  max: 4, // limit each sessionId/IP to 4 analysis per day
+  max: 2, // limit each sessionId/IP to 2 analysis per day
   keyGenerator: (req) => req.headers['x-session-id'] || req.body.sessionId || req.ip,
   handler: (req, res) => {
     // Calculate time until rate limit resets
@@ -195,7 +195,7 @@ const analyzeLimiter = rateLimit({
     res.status(429).json({
       success: false,
       error: '🔥 You have reached your daily analysis limit. Want more? Join the waitlist.',
-      usageLimit: 4, // Set to 4 analysis per day
+      usageLimit: 2, // Set to 2 analysis per day
       resetTime: resetTime,
       resetInSeconds: secondsUntilReset,
       // Include previous analyses they can still access
