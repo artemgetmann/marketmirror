@@ -8,13 +8,17 @@ interface EmailCaptureModalProps {
   onClose: () => void;
   resetTime?: Date;
   resetInSeconds?: number;
+  customTitle?: string;
+  customMessage?: string;
 }
 
 const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({ 
   isOpen, 
   onClose, 
   resetTime, 
-  resetInSeconds 
+  resetInSeconds,
+  customTitle,
+  customMessage
 }) => {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -98,7 +102,7 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
         <div className="flex justify-between items-start mb-6">
           <h3 className="text-xl font-semibold tracking-tight text-gray-900">
-            {isSubmitted ? 'Welcome to the Rebellion' : 'You\'ve Reached Today\'s Limit'}
+            {isSubmitted ? 'Welcome to the Rebellion' : (customTitle || 'You\'ve Reached Today\'s Limit')}
           </h3>
           <button 
             onClick={() => {
@@ -116,8 +120,12 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
           <>
             <div className="space-y-5 text-gray-700">
               <p>
-                That's what happens when clarity spreads faster<br/>
-                than Wall Street can stop it.
+                {typeof customMessage === 'string' ? customMessage : (
+                  <>
+                    That's what happens when clarity spreads faster<br/>
+                    than Wall Street can stop it.
+                  </>
+                )}
               </p>
               
               {/* Show accessible analyses if available */}
@@ -148,6 +156,9 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
               <p className="pb-2">
                 MarketMirror is the rebellion.<br/>
                 Not built for institutions. Built for people who think for themselves.
+              </p>
+              <p className="text-gray-600 text-sm">
+                Drop your email and we'll let you know when premium access launches.
               </p>
             </div>
 

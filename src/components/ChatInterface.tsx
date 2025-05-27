@@ -4,6 +4,7 @@ import { Send, ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
+import EmailCaptureModal from "./EmailCaptureModal";
 
 interface Message {
   id: string;
@@ -260,10 +261,19 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     }
   };
 
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [rateLimitInfo, setRateLimitInfo] = useState<{
+    resetTime?: Date;
+    resetInSeconds?: number;
+    ticker: string;
+    followupLimit: number;
+  } | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    if (!inputValue.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading || isRateLimited) return;
     
     // Skip any ongoing animation when user sends new message
     skipAnimation();
@@ -271,9 +281,6 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     // Enable auto-scrolling when user sends a message
     setAutoScroll(true);
     setUserScrolledUp(false);
-    
-    // Skip any ongoing animation when user sends new message
-    skipAnimation();
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -306,6 +313,58 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
         },
       );
 
+      // Handle rate limit response - for testing you can uncomment the code below
+      // and comment out the actual API call above
+      /*
+      // Testing simulation - removed for production
+      */
+        
+      // Handle rate limit response (429)
+      if (response.status === 429) {
+        const errorData = await response.json();
+        
+        // Set rate limit info for the modal
+        setIsRateLimited(true);
+        setRateLimitInfo({
+          resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to 24h from now
+          resetInSeconds: 24 * 60 * 60,
+          ticker: errorData.ticker || ticker,
+          followupLimit: errorData.followupLimit || 5
+        });
+        
+        // Show the email modal (reusing existing rate limit UI)
+        setShowEmailModal(true);
+        
+        // Add a rate limit message to the chat
+        const rateLimitMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: `You've reached the limit of ${errorData.followupLimit || 5} follow-up questions for this analysis. Premium users will get unlimited follow-ups.`,
+          isUser: false,
+          timestamp: new Date(),
+          animationComplete: true
+        };
+        
+        setMessages((prev) => [...prev, rateLimitMessage]);
+        throw new Error("Rate limit reached");
+      }
+      
+      // Handle session expired (404)
+      if (response.status === 404) {
+        const errorData = await response.json();
+        
+        // Add a session expired message
+        const sessionExpiredMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: "Your session has expired. Please start a new analysis to continue the conversation.",
+          isUser: false,
+          timestamp: new Date(),
+          animationComplete: false
+        };
+        
+        setMessages((prev) => [...prev, sessionExpiredMessage]);
+        throw new Error("Session expired");
+      }
+      
       if (!response.ok) {
         throw new Error("Failed to get a response");
       }
@@ -321,17 +380,19 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
-      // Add error message
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "I couldn't answer that right now. Please try again later.",
-        isUser: false,
-        timestamp: new Date(),
-        animationComplete: false
-      };
+    } catch (error: any) {
+      // Only add generic error message if not already handled
+      if (error.message !== "Rate limit reached" && error.message !== "Session expired") {
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: "I couldn't answer that right now. Please try again later.",
+          isUser: false,
+          timestamp: new Date(),
+          animationComplete: false
+        };
 
-      setMessages((prev) => [...prev, errorMessage]);
+        setMessages((prev) => [...prev, errorMessage]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -502,6 +563,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
               MarketMirror
             </h3>
             <div className="flex items-center gap-2">
+
               {messages.length > 1 && (
                 <Button
                   variant="ghost"
@@ -587,7 +649,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about this analysis..."
                 className="flex-1 rounded-md border border-gray-300 py-2.5 px-4 focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-transparent text-[15px] transition-all duration-200"
-                disabled={false} /* Allow input even during loading/typing */
+                disabled={isRateLimited || isLoading} /* Disable input when rate limited or loading */
               />
               <Button
                 type="submit"
@@ -597,7 +659,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
                     ? "bg-gray-800 hover:bg-gray-900 text-white hover:scale-105"
                     : "bg-gray-200 text-gray-400 hover:bg-gray-300 cursor-not-allowed"
                 )}
-                disabled={!inputValue.trim() || isLoading}
+                disabled={!inputValue.trim() || isLoading || isRateLimited}
                 aria-label="Send message"
               >
                 <Send className="h-5 w-5 mr-2" />
@@ -606,6 +668,18 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
             </div>
           </form>
         </div>
+      )}
+      
+      {/* Rate Limit Modal */}
+      {rateLimitInfo && (
+        <EmailCaptureModal
+          isOpen={showEmailModal}
+          onClose={() => setShowEmailModal(false)}
+          resetTime={rateLimitInfo.resetTime}
+          resetInSeconds={rateLimitInfo.resetInSeconds}
+          customTitle="You've Reached The Follow-up Limit"
+          customMessage={`You've hit the limit of ${rateLimitInfo.followupLimit} follow-up questions for this analysis of ${rateLimitInfo.ticker.toUpperCase()}. Premium users will get unlimited follow-ups.`}
+        />
       )}
     </div>
   );

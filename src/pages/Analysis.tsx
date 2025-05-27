@@ -148,6 +148,8 @@ const Analysis = () => {
   const { ticker = "" } = useParams<{ ticker: string }>();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isPdfLimited, setIsPdfLimited] = useState(true); // Default to true for free accounts
+  const [showPdfLimitModal, setShowPdfLimitModal] = useState(false);
   const [showFloatingChat, setShowFloatingChat] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
@@ -273,6 +275,13 @@ const Analysis = () => {
 
   const handleDownloadPDF = async () => {
     if (!analysisRef.current || isDownloading) return;
+    
+    // Check if user is restricted from PDF downloads (free account)
+    if (isPdfLimited) {
+      // Show the PDF limit modal instead of generating the PDF
+      setShowPdfLimitModal(true);
+      return;
+    }
 
     setIsDownloading(true);
     try {
@@ -801,12 +810,22 @@ const Analysis = () => {
         </TooltipProvider>
       )}
       
-      {/* Email Capture Modal */}
+      {/* Rate limit modal for daily usage */}
       <EmailCaptureModal
         isOpen={showEmailModal}
         onClose={() => setShowEmailModal(false)}
         resetTime={rateLimitInfo?.resetTime}
         resetInSeconds={rateLimitInfo?.resetInSeconds}
+      />
+      
+      {/* PDF restriction modal for free accounts */}
+      <EmailCaptureModal
+        isOpen={showPdfLimitModal}
+        onClose={() => setShowPdfLimitModal(false)}
+        resetTime={new Date(Date.now() + 24 * 60 * 60 * 1000)}
+        resetInSeconds={24 * 60 * 60}
+        customTitle="PDF Downloads are Premium"
+        customMessage={`PDF downloads are an exclusive premium feature. Premium users will get unlimited PDF exports.`}
       />
       
       {/* Admin Login Modal */}
