@@ -345,14 +345,6 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Ticker symbol is required' });
   }
   
-  // Log analysis submission event
-  logEvent({
-    event: "analysis_submitted",
-    sessionId: sessionId,
-    ticker: tickerUppercase,
-    timestamp: now
-  });
-  
   // Check API key before executing script (only in non-mock mode)
   if (!MOCK_API_CALLS && !process.env.OPENAI_API_KEY) {
     return res.status(500).json({ error: 'API key not configured on server' });
@@ -369,6 +361,14 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
     userAnalysisHistory[sessionId] = new Set();
   }
   userAnalysisHistory[sessionId].add(tickerUppercase);
+  
+  // Log analysis submission event
+  logEvent({
+    event: "analysis_submitted",
+    sessionId: sessionId,
+    ticker: tickerUppercase,
+    timestamp: now
+  });
   
   // Serve cached analysis if available, valid, and not bypassed
   if (ENABLE_CACHING && !bypassCache && 
