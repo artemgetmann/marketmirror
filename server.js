@@ -75,6 +75,27 @@ if (MONGODB_URI && MONGODB_URI !== 'mongodb://localhost:27017') {
 // We'll set these when connection is established
 let mongoDb = null;
 let subscribersCollection = null;
+let eventLogsCollection = null;
+
+// Analytics event logging function
+async function logEvent(eventData) {
+  // Add timestamp if not provided
+  if (!eventData.timestamp) {
+    eventData.timestamp = Date.now();
+  }
+  
+  // Log to console for debugging
+  console.log(`📊 Analytics event: ${eventData.event}`, eventData);
+  
+  // Store in MongoDB if available
+  if (MONGODB_ENABLED && eventLogsCollection) {
+    try {
+      await eventLogsCollection.insertOne(eventData);
+    } catch (err) {
+      console.error('Failed to log analytics event:', err.message);
+    }
+  }
+}
 
 // Simple function to connect to MongoDB (but don't block server startup if it fails)
 async function connectToMongoDB() {
@@ -91,14 +112,16 @@ async function connectToMongoDB() {
     await mongoClient.connect();
     console.log('Connected to MongoDB');
     
-    // Get database and collection
+    // Get database and collections
     mongoDb = mongoClient.db(); 
     subscribersCollection = mongoDb.collection('subscribers');
-    console.log('MongoDB collection ready');
+    eventLogsCollection = mongoDb.collection('event_logs');
+    console.log('MongoDB collections ready');
     
     // Quick test to make sure the connection works
-    const count = await subscribersCollection.countDocuments({});
-    console.log(`Found ${count} existing subscribers in MongoDB`);
+    const subscribersCount = await subscribersCollection.countDocuments({});
+    const eventsCount = await eventLogsCollection.countDocuments({});
+    console.log(`Found ${subscribersCount} existing subscribers and ${eventsCount} event logs in MongoDB`);
     
     return true;
   } catch (err) {
@@ -191,6 +214,14 @@ const analyzeLimiter = rateLimit({
     // Get session ID and user history
     const sessionId = req.headers['x-session-id'] || req.body.sessionId || req.ip;
     const userHistory = Array.from(userAnalysisHistory[sessionId] || []);
+    
+    // Log rate limit event
+    logEvent({
+      event: "rate_limit_triggered",
+      sessionId: sessionId,
+      limitType: "analysis",
+      timestamp: Date.now()
+    });
     
     res.status(429).json({
       success: false,
@@ -313,6 +344,14 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
   if (!ticker) {
     return res.status(400).json({ error: 'Ticker symbol is required' });
   }
+  
+  // Log analysis submission event
+  logEvent({
+    event: "analysis_submitted",
+    sessionId: sessionId,
+    ticker: tickerUppercase,
+    timestamp: now
+  });
   
   // Check API key before executing script (only in non-mock mode)
   if (!MOCK_API_CALLS && !process.env.OPENAI_API_KEY) {
@@ -573,13 +612,31 @@ app.post('/followup', async (req, res) => {
   // Get the ticker from the request or use the default one
   const tickerToUse = requestedTicker ? requestedTicker.toUpperCase() : sessionStore[sessionId].ticker;
   
+  // Log follow-up question event
+  logEvent({
+    event: "followup_submitted",
+    sessionId: sessionId,
+    ticker: tickerToUse,
+    question: question.substring(0, 100), // Truncate long questions
+    timestamp: Date.now()
+  });
+  
   // Initialize counter for this ticker if not present
   if (sessionStore[sessionId].followupCounters[tickerToUse] === undefined) {
     sessionStore[sessionId].followupCounters[tickerToUse] = 0;
   }
-  
+
   // Check if user has reached follow-up question limit for this ticker
   if (sessionStore[sessionId].followupCounters[tickerToUse] >= MAX_FOLLOWUPS_PER_TICKER) {
+    // Log rate limit event for follow-ups
+    logEvent({
+      event: "rate_limit_triggered",
+      sessionId: sessionId,
+      limitType: "followup",
+      ticker: tickerToUse,
+      timestamp: Date.now()
+    });
+
     return res.status(429).json({
       error: `You have reached the maximum number of follow-up questions for ${tickerToUse}.`,
       followupLimit: MAX_FOLLOWUPS_PER_TICKER,
@@ -588,7 +645,7 @@ app.post('/followup', async (req, res) => {
       availableTickers: Array.from(userAnalysisHistory[sessionId] || [])
     });
   }
-  
+
   try {
     // Check if user has analyzed multiple tickers and wants to specify one
     const userTickers = Array.from(userAnalysisHistory[sessionId] || []);
