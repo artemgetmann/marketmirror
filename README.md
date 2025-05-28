@@ -244,6 +244,68 @@ The follow-up response includes information about the remaining questions for al
 }
 ```
 
+## Analytics Implementation
+
+MarketMirror includes lightweight server-side analytics tracking for key user actions. These events are stored in a MongoDB collection and can be used to generate insights about user behavior.
+
+### Tracked Events
+
+1. **Analysis Submissions**
+   - Triggered when a user analyzes a ticker
+   - Stored data: `sessionId`, `ticker`, `timestamp`, `userAgent`, `referrer`
+
+2. **Follow-up Questions**
+   - Triggered when a user asks a follow-up question
+   - Stored data: `sessionId`, `ticker`, `question` (truncated to 100 chars), `timestamp`, `userAgent`, `referrer`
+
+3. **Rate Limit Triggers**
+   - Triggered when a user hits either the daily analysis limit or follow-up question limit
+   - Stored data: `sessionId`, `limitType` (analysis/followup), `ticker`, `timestamp`, `userAgent`, `referrer`
+
+### MongoDB Integration
+
+All analytics events are stored in the `event_logs` collection in MongoDB (when MongoDB is configured). Event data is also logged to the console with a 📊 prefix for debugging.
+
+### Sample Analytics Queries
+
+```javascript
+// Most popular tickers
+db.event_logs.aggregate([
+  { $match: { event: "analysis_submitted" }},
+  { $group: { _id: "$ticker", count: { $sum: 1 } }},
+  { $sort: { count: -1 }},
+  { $limit: 10 }
+])
+
+// Follow-up questions per ticker
+db.event_logs.aggregate([
+  { $match: { event: "followup_submitted" }},
+  { $group: { _id: "$ticker", followupCount: { $sum: 1 } }},
+  { $sort: { followupCount: -1 }}
+])
+
+// Rate limit analysis
+db.event_logs.aggregate([
+  { $match: { event: "rate_limit_triggered" }},
+  { $group: { 
+    _id: "$limitType", 
+    count: { $sum: 1 },
+    uniqueSessions: { $addToSet: "$sessionId" }
+  }}
+])
+```
+
+## Session Persistence
+
+MarketMirror maintains session state between page refreshes and multiple analyses. Key features:
+
+1. **Follow-up Counter Persistence**: Each ticker maintains its follow-up question count even when:
+   - The page is refreshed
+   - The same ticker is re-analyzed
+   - The user switches between different tickers
+
+2. **Per-Ticker Limits**: Each ticker has its own limit of 3 follow-up questions, properly enforced across sessions.
+
 ## Admin Authentication
 
 The API uses JWT (JSON Web Token) for admin authentication. When authenticated as an admin, you can bypass rate limits and access admin-only endpoints like `/subscriptions`.

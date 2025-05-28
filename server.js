@@ -220,7 +220,9 @@ const analyzeLimiter = rateLimit({
       event: "rate_limit_triggered",
       sessionId: sessionId,
       limitType: "analysis",
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      userAgent: req.headers['user-agent'] || 'unknown',
+      referrer: req.headers['referer'] || 'unknown'
     });
     
     res.status(429).json({
@@ -367,7 +369,9 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
     event: "analysis_submitted",
     sessionId: sessionId,
     ticker: tickerUppercase,
-    timestamp: now
+    timestamp: now,
+    userAgent: req.headers['user-agent'] || 'unknown',
+    referrer: req.headers['referer'] || 'unknown'
   });
   
   // Serve cached analysis if available, valid, and not bypassed
@@ -618,7 +622,9 @@ app.post('/followup', async (req, res) => {
     sessionId: sessionId,
     ticker: tickerToUse,
     question: question.substring(0, 100), // Truncate long questions
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    userAgent: req.headers['user-agent'] || 'unknown',
+    referrer: req.headers['referer'] || 'unknown'
   });
   
   // Initialize counter for this ticker if not present
@@ -634,7 +640,9 @@ app.post('/followup', async (req, res) => {
       sessionId: sessionId,
       limitType: "followup",
       ticker: tickerToUse,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      userAgent: req.headers['user-agent'] || 'unknown',
+      referrer: req.headers['referer'] || 'unknown'
     });
 
     return res.status(429).json({
