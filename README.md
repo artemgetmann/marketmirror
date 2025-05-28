@@ -11,7 +11,7 @@ Health check endpoint
 Returns the current caching status and information about cached tickers
 
 ### POST /analyze
-Analyzes a stock based on the provided ticker symbol. This endpoint has rate limiting applied (1 analysis per day per user).
+Analyzes a stock based on the provided ticker symbol. This endpoint has rate limiting applied (2 analyses per day per user).
 
 #### Request body
 ```json
@@ -31,8 +31,8 @@ Analyzes a stock based on the provided ticker symbol. This endpoint has rate lim
   "fromCache": true,
   "usageInfo": {
     "usageCount": 1,
-    "usageLimit": 1,
-    "remainingUses": 0
+    "usageLimit": 2,
+    "remainingUses": 1
   }
 }
 ```
@@ -42,7 +42,7 @@ Analyzes a stock based on the provided ticker symbol. This endpoint has rate lim
 {
   "success": false,
   "error": "🔥 You have reached your daily analysis limit. Want more? Join the waitlist.",
-  "usageLimit": 1,
+  "usageLimit": 2,
   "resetTime": "2025-05-23T02:39:50.000Z",
   "resetInSeconds": 86400
 }
@@ -217,17 +217,29 @@ Users are limited to 2 stock analyses per day based on their session ID or IP ad
 
 ### Follow-up Question Rate Limiting
 
-Each stock analysis session is limited to 5 follow-up questions. Once this limit is reached, users will need to start a new analysis to ask more questions.
+Each stock ticker analysis is limited to 3 follow-up questions. This limit is applied per ticker, not per session, so users can ask follow-up questions about any stock they've analyzed without affecting their quota for other tickers.
 
-The follow-up response includes information about the remaining questions:
+To ask about a specific ticker, users can include the `ticker` parameter in their follow-up request. If not specified, the system will use the most recently analyzed ticker.
+
+The follow-up response includes information about the remaining questions for all analyzed tickers:
 
 ```json
 {
   "answer": "... answer to follow-up question ...",
   "followupInfo": {
-    "followupCount": 2,
-    "followupLimit": 5,
-    "remainingFollowups": 3
+    "currentTicker": "AAPL",
+    "followupCount": 1,
+    "followupLimit": 3,
+    "remainingFollowups": 2,
+    "allTickers": ["AAPL", "TSLA"],
+    "tickerCounts": {
+      "AAPL": 1,
+      "TSLA": 2
+    },
+    "tickerRemaining": {
+      "AAPL": 2,
+      "TSLA": 1
+    }
   }
 }
 ```

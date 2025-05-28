@@ -337,7 +337,10 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
       (now - analysisCache[tickerUppercase].timestamp < CACHE_EXPIRY)) {
     console.log(`Serving cached analysis for ${tickerUppercase}`);
     
-    // Even for cached responses, create a new session
+    // Save existing follow-up counters if they exist
+    const existingCounters = sessionStore[sessionId]?.followupCounters || {};
+    
+    // Even for cached responses, create a new session (but preserve follow-up counters)
     sessionStore[sessionId] = {
       ticker: tickerUppercase,
       timestamp: now,
@@ -345,8 +348,12 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
         { role: 'system', content: ARTEM_PROMPT },
         { role: 'user', content: `Analyze ${tickerUppercase} stock` },
         { role: 'assistant', content: analysisCache[tickerUppercase].data.analysis }
-      ]
+      ],
+      followupCounters: existingCounters // Preserve existing counters
     };
+    
+    // For debugging
+    console.log(`Session created/updated for ${sessionId}, followupCounters:`, existingCounters);
     
     // Get user's analysis history
     const userHistory = Array.from(userAnalysisHistory[sessionId] || []);
@@ -379,17 +386,23 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
     // Get mock analysis for the ticker
     const mockAnalysis = getMockAnalysis(tickerUppercase);
     
-    // Create a new session with the initial conversation context
+    // Save existing follow-up counters if they exist
+    const existingCounters = sessionStore[sessionId]?.followupCounters || {};
+    
+    // Create a new session with the initial conversation context (but preserve follow-up counters)
     sessionStore[sessionId] = {
       ticker: tickerUppercase,
       timestamp: now,
-      followupCount: 0, // Initialize follow-up counter
       messages: [
         { role: 'system', content: ARTEM_PROMPT },
         { role: 'user', content: `Analyze ${tickerUppercase} stock` },
         { role: 'assistant', content: mockAnalysis }
-      ]
+      ],
+      followupCounters: existingCounters // Preserve existing counters
     };
+    
+    // For debugging
+    console.log(`Session created/updated for ${sessionId} (mock mode), followupCounters:`, existingCounters);
     
     const userHistory = Array.from(userAnalysisHistory[sessionId] || []);
     
@@ -459,17 +472,24 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
     // Clean the analysis text to remove OpenAI attribution
     const cleanedAnalysis = cleanAnalysisText(stdout.trim());
     
-    // Create a new session with the initial conversation context
+    // Create a new session
+    // Save existing follow-up counters if they exist
+    const existingCounters = sessionStore[sessionId]?.followupCounters || {};
+    
+    // Create session for conversation memory (but preserve follow-up counters)
     sessionStore[sessionId] = {
       ticker: tickerUppercase,
       timestamp: now,
-      followupCount: 0, // Initialize follow-up counter
       messages: [
         { role: 'system', content: ARTEM_PROMPT },
         { role: 'user', content: `Analyze ${tickerUppercase} stock` },
         { role: 'assistant', content: cleanedAnalysis }
-      ]
+      ],
+      followupCounters: existingCounters // Preserve existing counters
     };
+    
+    // For debugging
+    console.log(`Session created/updated for ${sessionId} (real API), followupCounters:`, existingCounters);
     
     const userHistory = Array.from(userAnalysisHistory[sessionId] || []);
     
