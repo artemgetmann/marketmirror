@@ -175,7 +175,19 @@ Mock responses include a `testMode: true` flag to indicate they're from the mock
 
 ## Caching
 
-The API implements caching of stock analyses for 24 hours to reduce API call costs and improve response time. Cached analyses are stored in memory and served for subsequent requests for the same ticker.
+### Caching Behavior
+
+The API implements caching of stock analyses to reduce API call costs and improve response time. Here's how the caching system works:
+
+1. **Cache Duration**: Each analysis is cached for 24 hours from the time it was created.
+
+2. **In-Memory Storage**: Cached analyses are stored in server memory (not persistent storage). This means all cache is cleared when the server restarts.
+
+3. **User History Tracking**: The system tracks which tickers each user (by session ID) has analyzed, even after they've hit their daily analysis limit.
+
+4. **Accessing Past Analyses**: Users can always access their previously analyzed tickers within the 24-hour window, even after hitting their rate limit. This allows users to reference analyses they've already requested without counting toward their limit.
+
+5. **Individual Expiry**: Each cache entry expires independently 24 hours after creation. The cache items aren't all reset at the same time.
 
 ### Configuration
 
@@ -201,7 +213,7 @@ The API implements two types of rate limits to control API usage costs:
 
 ### Analysis Rate Limiting
 
-Users are limited to 4 stock analyses per day based on their session ID or IP address. This provides a reasonable free tier while controlling API costs.
+Users are limited to 2 stock analyses per day based on their session ID or IP address. This provides a reasonable free tier while controlling API costs.
 
 ### Follow-up Question Rate Limiting
 
