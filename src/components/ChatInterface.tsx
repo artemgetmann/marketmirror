@@ -12,11 +12,22 @@ interface Message {
   isUser: boolean;
   timestamp: Date;
   animationComplete?: boolean;
+  ticker?: string; // Optional ticker this message is about
 }
 
 interface TypewriterState {
   messageId: string;
   text: string;
+}
+
+interface FollowupInfo {
+  currentTicker: string;
+  followupCount: number;
+  followupLimit: number;
+  remainingFollowups: number;
+  allTickers: string[];
+  tickerCounts: Record<string, number>;
+  tickerRemaining: Record<string, number>;
 }
 
 interface ChatInterfaceProps {
@@ -41,13 +52,267 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
   const [userScrolledUp, setUserScrolledUp] = useState(false);
   const [messageHistory, setMessageHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  
+  // Enhanced rate limit info to support ticker-specific limits
+  const [rateLimitInfo, setRateLimitInfo] = useState<{
+    resetTime: Date;
+    resetInSeconds: number;
+    ticker: string;
+    followupLimit: number;
+    allTickers?: string[];
+    tickerCounts?: Record<string, number>;
+    tickerRemaining?: Record<string, number>;
+  } | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  // Load messages from localStorage when component mounts
+  // Track whether this component is mounted to prevent state updates after unmounting
+  const isMounted = useRef(true);
+  useEffect(() => {
+    return () => { isMounted.current = false; };
+  }, []);
+  
+  // Function to check follow-up status by making a session check request to the backend
+  const checkFollowupStatus = async () => {
+    if (!sessionId || !ticker) return;
+    
+    try {
+      // Make a minimal request to check status with the current backend state
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/followup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: "__status_check__", // Special marker
+          sessionId,
+          ticker,
+          statusCheckOnly: true // Flag to indicate this is just a status check
+        }),
+      });
+      
+      // If the backend returns a rate limit response, handle it
+      if (response.status === 429) {
+        const errorData = await response.json();
+        
+        if (!isMounted.current) return;
+        
+        // Create rate limit info object
+        const rateLimitInfo = {
+          resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to 24h from now
+          resetInSeconds: 24 * 60 * 60,
+          ticker: errorData.ticker || ticker,
+          followupLimit: errorData.followupLimit || 3,
+          // Include ticker-specific information if available
+          ...(errorData.followupInfo && {
+            allTickers: errorData.followupInfo.allTickers,
+            tickerCounts: errorData.followupInfo.tickerCounts,
+            tickerRemaining: errorData.followupInfo.tickerRemaining
+          })
+        };
+        
+        // Set rate limit info in state
+        setIsRateLimited(true);
+        setRateLimitInfo(rateLimitInfo);
+        setShowEmailModal(true);
+        
+        // Store the latest rate limit info in local storage with timestamp
+        localStorage.setItem(`followup_session_${sessionId}`, JSON.stringify({
+          ...rateLimitInfo,
+          timestamp: Date.now()
+        }));
+        
+        return;
+      } 
+      
+      // If the backend returns followup info, store it
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.followupInfo) {
+          if (!isMounted.current) return;
+          
+          // Store the latest followup info in local storage with timestamp
+          localStorage.setItem(`followup_session_${sessionId}`, JSON.stringify({
+            ...data.followupInfo,
+            timestamp: Date.now()
+          }));
+          
+          // Check if this ticker is at its limit
+          const tickerRemaining = data.followupInfo.tickerRemaining || {};
+          if (tickerRemaining[ticker] !== undefined && tickerRemaining[ticker] <= 0) {
+            // Create rate limit info object
+            const rateLimitInfo = {
+              resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to 24h from now
+              resetInSeconds: 24 * 60 * 60,
+              ticker: ticker,
+              followupLimit: data.followupInfo.followupLimit || 3,
+              allTickers: data.followupInfo.allTickers || [],
+              tickerCounts: data.followupInfo.tickerCounts || {},
+              tickerRemaining: tickerRemaining
+            };
+            
+            // Set rate limit info in state
+            setIsRateLimited(true);
+            setRateLimitInfo(rateLimitInfo);
+            setShowEmailModal(true);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking followup status:', error);
+      
+      // Fall back to localStorage if the network request fails
+      const sessionKey = `followup_session_${sessionId}`;
+      const storedSession = localStorage.getItem(sessionKey);
+      
+      if (storedSession) {
+        try {
+          const sessionData = JSON.parse(storedSession);
+          const now = Date.now();
+          
+          // Only use stored data if it's fresh (less than 5 minutes old)
+          if (sessionData.timestamp && now - sessionData.timestamp < 5 * 60 * 1000) {
+            const { tickerCounts, tickerRemaining, followupLimit } = sessionData;
+            
+            // Check if this ticker is rate limited
+            if (tickerRemaining && tickerRemaining[ticker] !== undefined && tickerRemaining[ticker] <= 0) {
+              if (!isMounted.current) return;
+              
+              // Create rate limit info object
+              const rateLimitInfo = {
+                resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                resetInSeconds: 24 * 60 * 60,
+                ticker,
+                followupLimit: followupLimit || 3,
+                allTickers: Object.keys(tickerCounts || {}),
+                tickerCounts: tickerCounts || {},
+                tickerRemaining: tickerRemaining || {}
+              };
+              
+              setIsRateLimited(true);
+              setRateLimitInfo(rateLimitInfo);
+              setShowEmailModal(true);
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing stored session data:", e);
+        }
+      }
+    }
+    
+    try {
+      // Send a minimal followup request just to check status
+      // The backend will return current counts and limits without processing a real question
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/followup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: "__status_check__", // Special marker that backend can recognize
+          sessionId,
+          ticker,
+          statusCheckOnly: true // Flag to indicate this is just checking status
+        }),
+      });
+      
+      // Parse the response based on status code
+      if (response.status === 429) {
+        // We've hit a rate limit
+        const errorData = await response.json();
+        
+        // Create rate limit info object
+        const rateLimitInfo = {
+          resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to 24h from now
+          resetInSeconds: 24 * 60 * 60,
+          ticker: errorData.ticker || ticker,
+          followupLimit: errorData.followupLimit || 3,
+          // Include ticker-specific information if available
+          ...(errorData.followupInfo && {
+            allTickers: errorData.followupInfo.allTickers,
+            tickerCounts: errorData.followupInfo.tickerCounts,
+            tickerRemaining: errorData.followupInfo.tickerRemaining
+          })
+        };
+        
+        if (!isMounted.current) return;
+        
+        // Set rate limit info in state
+        setIsRateLimited(true);
+        setRateLimitInfo(rateLimitInfo);
+        
+        // Store rate limit info in localStorage to persist across refreshes
+        localStorage.setItem(
+          `rateLimit_${sessionId}_${ticker}`, 
+          JSON.stringify(rateLimitInfo)
+        );
+        
+        // Also store in session data cache with timestamp
+        localStorage.setItem(`followup_session_${sessionId}`, JSON.stringify({
+          ...rateLimitInfo,
+          timestamp: Date.now()
+        }));
+        
+        // Show the modal if this ticker is at its limit
+        if (rateLimitInfo.tickerRemaining && 
+            rateLimitInfo.tickerRemaining[ticker] !== undefined && 
+            rateLimitInfo.tickerRemaining[ticker] <= 0) {
+          setShowEmailModal(true);
+        }
+      } else if (response.ok) {
+        // We got a successful response with status info
+        const data = await response.json();
+        
+        if (data.followupInfo) {
+          // Store the response in session data cache with timestamp
+          localStorage.setItem(`followup_session_${sessionId}`, JSON.stringify({
+            ...data.followupInfo,
+            timestamp: Date.now()
+          }));
+          
+          // Check if we've reached the limit for this ticker
+          const tickerRemaining = data.followupInfo.tickerRemaining || {};
+          if (tickerRemaining[ticker] !== undefined && tickerRemaining[ticker] <= 0) {
+            if (!isMounted.current) return;
+            
+            // Create rate limit info object
+            const rateLimitInfo = {
+              resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to 24h from now
+              resetInSeconds: 24 * 60 * 60,
+              ticker: ticker,
+              followupLimit: data.followupInfo.followupLimit || 3,
+              allTickers: data.followupInfo.allTickers || [],
+              tickerCounts: data.followupInfo.tickerCounts || {},
+              tickerRemaining: tickerRemaining
+            };
+            
+            // Set rate limit info in state
+            setIsRateLimited(true);
+            setRateLimitInfo(rateLimitInfo);
+            
+            // Store rate limit info in localStorage
+            localStorage.setItem(
+              `rateLimit_${sessionId}_${ticker}`, 
+              JSON.stringify(rateLimitInfo)
+            );
+            
+            // Show the modal if this ticker is at its limit
+            setShowEmailModal(true);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking followup status:', error);
+    }
+  };
+
+  // Load messages and check backend status when component mounts
   useEffect(() => {
     if (sessionId) {
       const savedMessages = localStorage.getItem(`chat_${sessionId}`);
@@ -75,8 +340,11 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           console.error("Error parsing saved message history:", e);
         }
       }
+
+      // Check follow-up status from the backend
+      checkFollowupStatus();
     }
-  }, [sessionId]);
+  }, [sessionId, ticker]);
 
   // Save messages to localStorage whenever they change
   useEffect(() => {
@@ -261,27 +529,73 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     }
   };
 
-  const [isRateLimited, setIsRateLimited] = useState(false);
-  const [rateLimitInfo, setRateLimitInfo] = useState<{
-    resetTime?: Date;
-    resetInSeconds?: number;
-    ticker: string;
-    followupLimit: number;
-  } | null>(null);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-
+  // Handle form submission for sending messages
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-
-    if (!inputValue.trim() || isLoading || isRateLimited) return;
+    if (!inputValue.trim() || isLoading) return;
     
     // Skip any ongoing animation when user sends new message
     skipAnimation();
-
+    
     // Enable auto-scrolling when user sends a message
     setAutoScroll(true);
     setUserScrolledUp(false);
-
+    
+    // First check if we have any cached rate limit info
+    let isAtLimit = false;
+    const sessionKey = `followup_session_${sessionId}`;
+    const storedSession = localStorage.getItem(sessionKey);
+    
+    if (storedSession && ticker) {
+      try {
+        const sessionData = JSON.parse(storedSession);
+        const now = Date.now();
+        
+        // Only use stored data if it's fresh (less than 5 minutes old)
+        if (sessionData.timestamp && now - sessionData.timestamp < 5 * 60 * 1000) {
+          const { tickerCounts, tickerRemaining, followupLimit } = sessionData;
+          
+          // Check if this ticker is already at its limit
+          if (tickerRemaining && 
+              tickerRemaining[ticker] !== undefined && 
+              tickerRemaining[ticker] <= 0) {
+            isAtLimit = true;
+            
+            // Create rate limit info object
+            const rateLimitInfo = {
+              resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+              resetInSeconds: 24 * 60 * 60,
+              ticker,
+              followupLimit: followupLimit || 3,
+              allTickers: Object.keys(tickerCounts || {}),
+              tickerCounts: tickerCounts || {},
+              tickerRemaining: tickerRemaining || {}
+            };
+            
+            // Set rate limit info and show modal
+            setIsRateLimited(true);
+            setRateLimitInfo(rateLimitInfo);
+            setShowEmailModal(true);
+            
+            // Add a rate limit message to the chat
+            const rateLimitMessage: Message = {
+              id: (Date.now() + 1).toString(),
+              content: `You've reached the limit of ${followupLimit || 3} follow-up questions for this ${ticker.toUpperCase()} analysis. Premium users will get unlimited follow-ups.`,
+              isUser: false,
+              timestamp: new Date(),
+              animationComplete: true
+            };
+            
+            setMessages(prev => [...prev, rateLimitMessage]);
+          }
+        }
+      } catch (e) {
+        console.error("Error parsing stored session data:", e);
+      }
+    }
+    
+    // Don't proceed if we're at the limit
+    if (isAtLimit) return;
     const userMessage: Message = {
       id: Date.now().toString(),
       content: inputValue,
@@ -309,6 +623,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           body: JSON.stringify({
             sessionId,
             question: userMessage.content,
+            ticker: ticker, // Include current ticker parameter for ticker-specific follow-ups
           }),
         },
       );
@@ -323,14 +638,29 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       if (response.status === 429) {
         const errorData = await response.json();
         
-        // Set rate limit info for the modal
-        setIsRateLimited(true);
-        setRateLimitInfo({
+        // Create rate limit info object
+        const rateLimitInfo = {
           resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // Default to 24h from now
           resetInSeconds: 24 * 60 * 60,
           ticker: errorData.ticker || ticker,
-          followupLimit: errorData.followupLimit || 5
-        });
+          followupLimit: errorData.followupLimit || 5,
+          // Include ticker-specific information if available
+          ...(errorData.followupInfo && {
+            allTickers: errorData.followupInfo.allTickers,
+            tickerCounts: errorData.followupInfo.tickerCounts,
+            tickerRemaining: errorData.followupInfo.tickerRemaining
+          })
+        };
+        
+        // Set rate limit info in state
+        setIsRateLimited(true);
+        setRateLimitInfo(rateLimitInfo);
+        
+        // Store rate limit info in localStorage to persist across refreshes
+        localStorage.setItem(
+          `rateLimit_${sessionId}_${rateLimitInfo.ticker}`, 
+          JSON.stringify(rateLimitInfo)
+        );
         
         // Show the email modal (reusing existing rate limit UI)
         setShowEmailModal(true);
@@ -338,7 +668,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
         // Add a rate limit message to the chat
         const rateLimitMessage: Message = {
           id: (Date.now() + 1).toString(),
-          content: `You've reached the limit of ${errorData.followupLimit || 5} follow-up questions for this analysis. Premium users will get unlimited follow-ups.`,
+          content: `You've reached the limit of ${errorData.followupLimit || 5} follow-up questions for this ${errorData.ticker || ticker} analysis. Premium users will get unlimited follow-ups.`,
           isUser: false,
           timestamp: new Date(),
           animationComplete: true
@@ -371,12 +701,25 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
       const data = await response.json();
 
+      // Store ticker-specific follow-up information if available
+      if (data.followupInfo) {
+        // If we have ticker-specific information, update the UI accordingly
+        const followupInfo = data.followupInfo;
+        
+        // Check if we're approaching the follow-up limit for this ticker
+        const currentTickerRemaining = followupInfo.remainingFollowups;
+        
+        // We could show a warning when approaching the limit if desired
+        // This would be a UI enhancement for a future iteration
+      }
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: data.answer,
         isUser: false,
         timestamp: new Date(),
-        animationComplete: false
+        animationComplete: false,
+        ticker: data.ticker || ticker // Store which ticker this response is about
       };
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -678,7 +1021,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           resetTime={rateLimitInfo.resetTime}
           resetInSeconds={rateLimitInfo.resetInSeconds}
           customTitle="You've Reached The Follow-up Limit"
-          customMessage={`You've hit the ${rateLimitInfo.followupLimit}-question follow-up limit for this analysis. Sharper questions come with a wait.`}
+          customMessage={`You've hit the ${rateLimitInfo.followupLimit}-question follow-up limit for this ${rateLimitInfo.ticker.toUpperCase()} analysis. Sharper questions come with a wait.`}
         />
       )}
     </div>
