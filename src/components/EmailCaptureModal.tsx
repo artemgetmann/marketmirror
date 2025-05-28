@@ -142,8 +142,8 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
                       {ticker.toUpperCase()}
                     </a>
                   ))[0]}
-                  <p className="text-xs text-gray-500 mt-2">
-                    Limit resets in about 23 hours
+                  <p className="text-[11px] text-gray-500 mt-2">
+                    Resets 24h after last analysis. Previous results saved until then.
                   </p>
                 </div>
               )}
@@ -157,7 +157,7 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
                 MarketMirror is the rebellion.<br/>
                 Not built for institutions. Built for people who think for themselves.
               </p>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 text-xs">
                 Drop your email and we'll let you know when premium access launches.
               </p>
             </div>
@@ -173,6 +173,10 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
                 className="w-full px-4 py-2 border border-gray-300 focus:outline-none focus:border-gray-500 rounded-md text-base"
               />
               
+              <p className="text-[10px] text-gray-400 mt-1 italic">
+                Premium unlocks unlimited analyses, follow-ups, PDF exports, saved history
+              </p>
+              
               {error && (
                 <p className="text-red-600 text-sm">{error}</p>
               )}
@@ -185,7 +189,7 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
                 {isSubmitting ? 'Processing...' : 'Join the Rebellion'}
               </button>
               
-              <p className="text-xs text-gray-500 text-center">Help us replace legacy with logic.</p>
+              <p className="text-xs text-gray-500 text-center">Help us replace legacy with logic</p>
             </div>
           </>
         ) : (
@@ -214,7 +218,7 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
               </button>
             </div>
             
-            <p className="mt-4 text-xs text-gray-500 text-center">Your free quota resets at midnight.</p>
+            <p className="mt-4 text-[10.5px] text-gray-500 text-center">Hang tight — your next analysis unlocks 24h from your last move</p>
           </div>
         )}
       </div>

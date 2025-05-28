@@ -678,7 +678,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           resetTime={rateLimitInfo.resetTime}
           resetInSeconds={rateLimitInfo.resetInSeconds}
           customTitle="You've Reached The Follow-up Limit"
-          customMessage={`You've hit the limit of ${rateLimitInfo.followupLimit} follow-up questions for this analysis of ${rateLimitInfo.ticker.toUpperCase()}. Premium users will get unlimited follow-ups.`}
+          customMessage={`You've hit the ${rateLimitInfo.followupLimit}-question follow-up limit for this analysis. Sharper questions come with a wait.`}
         />
       )}
     </div>
