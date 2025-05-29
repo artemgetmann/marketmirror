@@ -824,8 +824,8 @@ const Analysis = () => {
         onClose={() => setShowPdfLimitModal(false)}
         resetTime={new Date(Date.now() + 24 * 60 * 60 * 1000)}
         resetInSeconds={24 * 60 * 60}
-        customTitle="PDF Downloads are Premium"
-        customMessage={`PDF downloads are an exclusive premium feature. Premium users will get unlimited PDF exports.`}
+        customTitle="PDF Downloads Are Premium"
+        customMessage={`Want this analysis as a clean, shareable PDF?`}
       />
       
       {/* Admin Login Modal */}

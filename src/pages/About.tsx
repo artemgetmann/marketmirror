@@ -150,7 +150,7 @@ const About = () => {
         {/* Social Links */}
         <div className="flex justify-center gap-6 pt-16 pb-6">
           <a 
-            href="https://www.instagram.com/artemgetman_/" 
+            href="https://www.instagram.com/artemgetmann/" 
             target="_blank" 
             rel="noopener noreferrer"
             className="text-gray-500 hover:text-gray-900"
