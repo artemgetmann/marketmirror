@@ -1,18 +1,22 @@
-| Metric                  | Value         | Commentary / Qualitative Assessment                                                                                                        |
-|-------------------------|--------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| P/E (TTM)               | 30.47        | Premium multiple; reflects market confidence in Apple's durable earnings, but above historical tech average (15-25), pricing in growth.   |
-| P/S                     | 7.28         | High for hardware; signals strong brand/pricing power, but could limit upside if revenue growth stalls.                                   |
-| PEG Ratio               | 3.73         | Well above 1.0 (fair value); market expects slower growth, possibly over-penalizing mature tech.                                          |
-| P/FCF                   | 29.61        | Indicates investors pay up for Apple’s robust free cash flow, a sign of quality, but not a value play.                                    |
-| P/B                     | 43.67        | Exceptionally high; typical for asset-light, IP-driven giants, but leaves little margin for error.                                        |
-| ROE                     | 138.02%      | Outrageously strong; driven by massive buybacks and profitability—Apple is a capital-return machine.                                      |
-| ROA                     | 29.10%       | Elite efficiency; Apple wrings huge returns from its asset base, rare even among tech titans.                                             |
-| Profit Margin           | 24.30%       | World-class for hardware; signals pricing power and operational excellence.                                                               |
-| Sales Growth (5Y)       | 9.18%        | Solid for a $2.9T company; not hyper-growth, but consistent and resilient in a mature market.                                             |
-| Current Ratio           | 0.82         | Below 1.0; Apple runs lean, but its cash generation and credit access make liquidity risk negligible.                                     |
-| Debt/Equity             | 1.47         | Moderate leverage; Apple can easily service debt, uses it for buybacks and capital efficiency.                                            |
-| Insider Ownership       | 0.10%        | Very low; typical for mega-caps, but no founder “skin in the game.”                                                                      |
-| Insider Transactions    | -1.92%       | Minor net selling; not unusual at this scale, but worth watching for trend shifts.                                                       |
-| Dividend TTM            | 1.01 (0.52%) | Token yield; Apple prefers buybacks, but dividend is ultra-safe and could rise.                                                          |
-| Market Cap              | 2916.52B     | Unmatched scale; Apple is the world’s most valuable company, with liquidity and institutional support.                                    |
-| Option/Short            | Yes / Yes    | Highly liquid options market; short interest is always present, but rarely a major threat to price stability in Apple.                   |
+AAPL is a cash-printing machine with a cult brand, but the market is paying a luxury premium for yesterday’s innovation.
+
+| Metric                | Value        | Commentary                                                                 |
+|-----------------------|-------------|---------------------------------------------------------------------------|
+| **P/E (TTM)**         | 31.28       | Overpriced for current growth—market is paying up for safety, not upside.  |
+| **P/S**               | 7.48        | High—investors are treating Apple like a SaaS, not a hardware giant.       |
+| **PEG Ratio**         | 3.87        | Ugly—growth doesn’t justify the multiple, future returns get squeezed.     |
+| **P/FCF**             | 30.39       | Expensive—free cash flow is strong, but you’re paying a nosebleed premium. |
+| **P/B**               | 44.83        | Absurd—market treats Apple as untouchable, ignores tangible book value.    |
+| **ROE**               | 138.02%     | Outrageous—financial engineering and buybacks juicing returns.             |
+| **ROA**               | 29.10%      | Excellent—asset-light, hyper-efficient money machine.                      |
+| **Profit Margin**     | 24.30%      | Elite—Apple prints profits like few others in history.                     |
+| **Sales Growth (5Y)** | 9.18%       | Solid but not explosive—mature giant, not a rocket ship.                   |
+| **Current Ratio**     | 0.82        | Weak—Apple runs lean, but this is flirting with risk if the tide turns.    |
+| **Debt/Equity**       | 1.47        | Heavy—Apple borrows big for buybacks, not for growth.                      |
+| **Insider Ownership** | 0.10%       | Pathetic—leadership has little skin in the game.                           |
+| **Insider Transactions** | -1.92%   | Negative—insiders are cashing out, not doubling down.                      |
+| **Dividend TTM**      | 1.01 (0.50%)| Token dividend—income investors, look elsewhere.                           |
+| **Market Cap**        | 2993.44B    | Colossus—Apple is the market, not a disruptor anymore.                     |
+| **Option/Short**      | Yes / Yes   | Liquid and tradable—hedge funds play here, but the crowd is massive.       |
+
+MarketMirror doesn't wear suits. Double-check the numbers. Even AI makes mistakes. Think for yourself — that's kind of the whole point.

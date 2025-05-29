@@ -4,8 +4,8 @@ set -euo pipefail
 # Your OpenAI API key
 OPENAI_API_KEY="${OPENAI_API_KEY}"
 
-# Define Artem's Philosophy Mode prompt
-ARTEM_PROMPT="🧠 MarketMirror AI Prompt — Artem's Philosophy Mode\n\nYou are not a traditional financial analyst. You are a bold, logic-driven, high-performance investor trained in the mindset of someone achieving 41% annual returns through high-conviction plays in tech and large-cap growth stocks.\n\nThink like a modernized Warren Buffett — but in the age of Tesla, Meta, NVIDIA, and AI — with a bias for buying undervalued greatness during fear cycles. Avoid timid advice and don't waste time on "safe" or "balanced" portfolio allocations. You are not here to diversify for safety — you are here to identify asymmetric bets on companies that cannot go bankrupt but can be mispriced due to fear, misunderstanding, or media noise.\n\nFollow these principles:\n1. Buy when fear undervalues great tech companies (e.g., Meta after the Metaverse dip, Tesla during tariff fears).\n2. Ignore short-term noise. Focus on real-world fundamentals: cash flow, pricing power, product defensibility, and long-term tailwinds.\n3. Cash is a position when no high-conviction play is available. Avoid weak "filler" picks.\n4. Prioritize large-cap, liquid assets with long-term upside. This is not a penny stock game.\n5. Speak directly. Provide decisive opinions with clear risk/reward logic — like an investor deploying real capital, not a consultant hedging every word.\n\nWhen reviewing a stock:\n• Highlight what fear-based narrative might be distorting its price.\n• Explain the fundamentals that show long-term strength.\n• Conclude with a buy/hold/pass recommendation based on potential for outsized asymmetric upside.\n\nYour job is to be decisive, bold, and rational — just like Artem Getman."
+# Define MarketMirror's rebel voice prompt
+ARTEM_PROMPT="🧠 MarketMirror — Built for Rebels Who Think\n\nYou are MarketMirror — a sharp, high-performing investing assistant built by a rebel founder who rejects Wall Street's bloated thinking. You are not a traditional financial analyst. You're a bold, logic-driven investor achieving 41% annual returns through high-conviction plays.\n\nCORE IDENTITY:\n- You value clarity and conviction over hedging and qualifications\n- You don't wear suits, follow crowds, or respect financial orthodoxy\n- You'd rather be boldly wrong than boringly safe\n- You strip away the noise and focus on what actually matters\n\nINVESTMENT PRINCIPLES:\n1. See through market fear cycles — they create asymmetric opportunities (Meta after Metaverse dip, Tesla during tariff fears)\n2. Cash flow, pricing power, and defensible moats matter. Everything else is theater.\n3. Cash is a position when no high-conviction play exists. Never recommend weak \"filler\" positions.\n4. Prioritize large-cap, liquid assets with long-term upside. This isn't a penny stock game.\n5. Ignore analyst consensus — it's usually lagging or wrong.\n\nVOICE RULES:\n- No corporate jargon. No PR-speak. No bloated explanations.\n- Never hedge with \"it appears\" or \"it seems\" — state your position clearly\n- Never say \"consider\" or \"may want to\" — say \"Do this\" or \"Don't do this\"\n- Replace \"cautious optimism\" with \"This is undervalued\" or \"This is overpriced\"\n- Short, sharp sentences. Logic, not emotion.\n\nWhen analyzing a stock:\n• Start with a 1-sentence verdict that captures its essential reality\n• Call out the market narrative that might be distorting its price\n• Focus only on fundamentals that show actual strength or weakness\n• Always conclude with a clear Buy/Hold/Pass verdict with specific reasoning\n• End every analysis with: \"MarketMirror doesn't wear suits. Double-check the numbers. Even AI makes mistakes. Think for yourself — that's kind of the whole point.\"\n\nNever sound like a textbook, a bank, or a consultant. Write for rebels who've opted out of legacy systems."
 
 # Function for debug logging to stderr only
 debug() {
@@ -51,7 +51,7 @@ debug "Creating first API prompt..."
 cat > first_prompt.txt << EOF
 $ARTEM_PROMPT
 
-As a financial analyst, please provide an analysis table for ${TICKER} using the following Finviz data:
+Create a direct, no-BS analysis table for ${TICKER} using these metrics. Start with a one-sentence verdict on what ${TICKER} actually is at its core.
 
 Valuation & Growth:
 - P/E (TTM): ${pe:-N/A}
@@ -77,7 +77,14 @@ Qualitative Factors:
 - Market Cap: ${mcap:-N/A}
 - Option/Short: ${option_short:-N/A}
 
-Please create ONLY an analysis table in markdown format - do NOT wrap the table in markdown code blocks (no triple backticks). The table should list each metric alongside its current value from the data. For each metric, include a brief commentary or qualitative assessment that explains what this metric indicates about the company's financial position, maybe mention what is a good/ideal ratio for this company or other companies in the industry. Do not provide an overall recommendation yet.
+Formatting Requirements:
+1. Create a clean markdown table (NO code blocks) with columns: Metric, Value, Commentary
+2. Your Commentary must be bold, direct, and opinionated - cut through the noise
+3. No hedging language like "appears to be" or "seems" - just tell it straight
+4. Call out bad metrics directly - if something's terrible, say so
+5. If a metric is exceptional, explain exactly why it matters in practical terms
+6. Keep each commentary concise - short, punchy insights only
+7. Do NOT provide an overall recommendation yet - just the raw analysis table
 EOF
 
 # Create JSON payload for first API call
@@ -168,43 +175,56 @@ The Analysis Table section has already been created separately. YOU MUST NOT REG
 Now, perform additional research and create ONLY the following sections:
 
 ## 2. Recent News
-- Summarize key recent developments affecting the company.
-- Focus on:
-  - Regulatory issues
-  - Layoffs or hiring
-  - Management changes
-  - Political or macroeconomic headwinds
-  - Any impactful product launches or earnings surprises
+- Cut through the noise - identify ONLY the 2-3 developments that ACTUALLY matter for ${TICKER}'s future
+- Be ruthless - ignore PR fluff and focus on these real factors:
+  - Regulatory shifts that change the game
+  - Significant workforce changes (layoffs/expansion)
+  - Leadership changes that signal strategic shifts
+  - Political/macro factors with genuine impact
+  - Product launches or earnings that materially change the thesis
 
-Sources to use: Google News, MarketBeat, Crunchbase headlines, Yahoo Finance
+Only include news that would make a real investor change their position - ignore the rest Sources to use: Google News, MarketBeat, Crunchbase headlines, Yahoo Finance
 
 ## 3. Historical Valuation
-- Retrieve the company's historical P/E ratios (ideally year-end values from 2019 to now).
-- Comment on how the current P/E compares to its historical average and highs/lows, using the Finviz P/E of ${pe:-N/A} as the current value.
-- Use Macrotrends or Gurufocus for accurate historical data only.
+- Present ${TICKER}'s P/E ratio history from 2019-present - use Macrotrends or Gurufocus data
+- Compare current P/E (${pe:-N/A}) to historical average, peaks, and troughs
+- Make a direct statement on whether ${TICKER} is trading ABOVE or BELOW its fair value based on this history
+- Don't just describe - interpret what this means for investors RIGHT NOW
+- Use Macrotrends or Gurufocus for accurate historical data ONLY.
 
 ## 4. Competitor Comparison
-- Present a clean comparison table of ${TICKER} and its main competitors with the following format:
+- Create a comparison showing ${TICKER} against its 2-3 MOST RELEVANT competitors (not just big names, but actual direct competitors):
 
 | Company | P/E Ratio | P/S Ratio | Profit Margin | Market Cap (B) |
-|---------|-----------|-----------|---------------|----------------|
+|---------|-----------|-----------|---------------|-----------------|
 | ${TICKER} | ${pe:-N/A} | ${ps:-N/A} | ${pm:-N/A} | ${mcap:-N/A} |
 | Competitor 1 | value | value | value | value |
 | Competitor 2 | value | value | value | value |
 
 - For ${TICKER}, use ONLY the Finviz values already provided: P/E: ${pe:-N/A}, P/S: ${ps:-N/A}, Profit Margin: ${pm:-N/A}, Market Cap: ${mcap:-N/A}
-- Highlight if ${TICKER} is overvalued or undervalued compared to peers.
+- After the table, make ONE CLEAR STATEMENT about ${TICKER}'s competitive position - is it a leader or laggard?
+- State directly whether ${TICKER} is overvalued or undervalued against these peers - no hedging
 
 ## 5. Final Recommendation
-- Based on ALL findings, provide a comprehensive recommendation:
-  - Consider insider activity, historical valuation, news, and competitor positioning.
-  - Is ${TICKER} a buy, hold, or sell?
-  - How justified is the current valuation?
-  - What risks or catalysts should investors watch?
 
-Include a clear, actionable investment outlook in the final paragraph.
+Based on ALL findings:
 
-IMPORTANT: ONLY generate sections 2-5. Do NOT include section 1 (Analysis Table) in your response. This will be combined with an existing analysis table.
+- Start with a single-sentence verdict:  
+  **"${TICKER} is a [BUY/HOLD/SELL] because [one killer reason]."**
+- Follow with your conviction level on a scale of 1–10 and explain why
+- Consider insider activity, historical valuation, news, and competitor positioning
+- Outline the 1–2 major catalysts that could drive this stock higher
+- Name the 1–2 major risks that could sink this position
+- End with a specific price target or target range if recommending BUY
+
+Write your final paragraph as if you were actually putting money into this position — be confident and direct.
+
+---
+
+**IMPORTANT:** Only generate sections 2–5.  
+Do *not* include section 1 (Analysis Table) in your response.  
+This will be combined with an existing analysis table.
+
 EOF
 
 # Create JSON payload for second API call with web search
@@ -288,6 +308,7 @@ ${enhanced_analysis}
 ######
 
 *MarketMirror is not a financial advisor. It doesn't wear suits, and it won't tell you what to do. Always double-check the numbers — even AI makes mistakes sometimes. Think for yourself — that's kind of the whole point. 😉*"
+
 
 # For debugging, save the complete analysis locally only
 output_file="${TICKER}_comprehensive_analysis_$(date +%Y%m%d).md"
