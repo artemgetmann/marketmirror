@@ -3,11 +3,11 @@
 As a financial analyst, please provide an analysis table for AAPL using the following Finviz data:
 
 Valuation & Growth:
-- P/E (TTM): 31.37
-- P/S: 7.50
-- PEG Ratio: 3.88
-- P/FCF: 30.49
-- P/B: 44.96
+- P/E (TTM): 31.23
+- P/S: 7.47
+- PEG Ratio: 3.87
+- P/FCF: 30.35
+- P/B: 44.76
 
 Profitability:
 - ROE: 138.02%
@@ -23,7 +23,7 @@ Qualitative Factors:
 - Insider Ownership: 0.10%
 - Insider Transactions: -1.92%
 - Dividend TTM: 1.01 (0.50%)
-- Market Cap: 3002.70B
+- Market Cap: 2989.41B
 - Option/Short: Yes / Yes
 
 Please create ONLY an analysis table in markdown format - do NOT wrap the table in markdown code blocks (no triple backticks). The table should list each metric alongside its current value from the data. For each metric, include a brief commentary or qualitative assessment that explains what this metric indicates about the company's financial position, maybe mention what is a good/ideal ratio for this company or other companies in the industry. Do not provide an overall recommendation yet.

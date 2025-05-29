@@ -3,11 +3,11 @@
 I have analyzed the financial metrics for AAPL from Finviz with these values:
 
 Valuation & Growth:
-- P/E (TTM): 31.37
-- P/S: 7.50
-- PEG Ratio: 3.88
-- P/FCF: 30.49
-- P/B: 44.96
+- P/E (TTM): 31.23
+- P/S: 7.47
+- PEG Ratio: 3.87
+- P/FCF: 30.35
+- P/B: 44.76
 
 Profitability:
 - ROE: 138.02%
@@ -23,10 +23,16 @@ Qualitative Factors:
 - Insider Ownership: 0.10%
 - Insider Transactions: -1.92%
 - Dividend TTM: 1.01 (0.50%)
-- Market Cap: 3002.70B
+- Market Cap: 2989.41B
 - Option/Short: Yes / Yes
 
 The Analysis Table section has already been created separately. YOU MUST NOT REGENERATE THE ANALYSIS TABLE.
+
+IMPORTANT SOURCE GUIDELINES:
+- Use high-quality financial sources like: CNBC, Bloomberg, Reuters, Yahoo Finance, Seeking Alpha, Morningstar, company IR pages, SEC filings, and earnings reports
+- NEVER use Wikipedia for any part of this analysis
+- Prioritize primary financial sources (company reports, SEC filings) over secondary sources
+- For news, use established financial news outlets only
 
 Now, perform additional research and create ONLY the following sections:
 
@@ -39,11 +45,11 @@ Now, perform additional research and create ONLY the following sections:
   - Political or macroeconomic headwinds
   - Any impactful product launches or earnings surprises
 
-Sources to use: Google News, MarketBeat, Crunchbase headlines, Yahoo Finance
+Sources to use: Google News, MarketBeat, CNBC, Bloomberg, Reuters, Seeking Alpha, Morningstar, company IR pages, and Yahoo Finance. DO NOT use Wikipedia as a source for any part of this analysis.
 
 ## 3. Historical Valuation
 - Retrieve the company's historical P/E ratios (ideally year-end values from 2019 to now).
-- Comment on how the current P/E compares to its historical average and highs/lows, using the Finviz P/E of 31.37 as the current value.
+- Comment on how the current P/E compares to its historical average and highs/lows, using the Finviz P/E of 31.23 as the current value.
 - Use Macrotrends or Gurufocus for accurate historical data only.
 
 ## 4. Competitor Comparison
@@ -51,11 +57,11 @@ Sources to use: Google News, MarketBeat, Crunchbase headlines, Yahoo Finance
 
 | Company | P/E Ratio | P/S Ratio | Profit Margin | Market Cap (B) |
 |---------|-----------|-----------|---------------|----------------|
-| AAPL | 31.37 | 7.50 | 24.30% | 3002.70B |
+| AAPL | 31.23 | 7.47 | 24.30% | 2989.41B |
 | Competitor 1 | value | value | value | value |
 | Competitor 2 | value | value | value | value |
 
-- For AAPL, use ONLY the Finviz values already provided: P/E: 31.37, P/S: 7.50, Profit Margin: 24.30%, Market Cap: 3002.70B
+- For AAPL, use ONLY the Finviz values already provided: P/E: 31.23, P/S: 7.47, Profit Margin: 24.30%, Market Cap: 2989.41B
 - Highlight if AAPL is overvalued or undervalued compared to peers.
 
 ## 5. Final Recommendation
