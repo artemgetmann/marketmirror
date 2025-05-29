@@ -3,11 +3,11 @@
 I have analyzed the financial metrics for AAPL from Finviz with these values:
 
 Valuation & Growth:
-- P/E (TTM): 31.28
-- P/S: 7.48
-- PEG Ratio: 3.87
-- P/FCF: 30.39
-- P/B: 44.83
+- P/E (TTM): 31.53
+- P/S: 7.54
+- PEG Ratio: 3.90
+- P/FCF: 30.64
+- P/B: 45.18
 
 Profitability:
 - ROE: 138.02%
@@ -23,7 +23,7 @@ Qualitative Factors:
 - Insider Ownership: 0.10%
 - Insider Transactions: -1.92%
 - Dividend TTM: 1.01 (0.50%)
-- Market Cap: 2993.44B
+- Market Cap: 3017.19B
 - Option/Short: Yes / Yes
 
 The Analysis Table section has already been created separately. YOU MUST NOT REGENERATE THE ANALYSIS TABLE.
@@ -43,7 +43,7 @@ Only include news that would make a real investor change their position - ignore
 
 ## 3. Historical Valuation
 - Present AAPL's P/E ratio history from 2019-present - use Macrotrends or Gurufocus data
-- Compare current P/E (31.28) to historical average, peaks, and troughs
+- Compare current P/E (31.53) to historical average, peaks, and troughs
 - Make a direct statement on whether AAPL is trading ABOVE or BELOW its fair value based on this history
 - Don't just describe - interpret what this means for investors RIGHT NOW
 - Use Macrotrends or Gurufocus for accurate historical data ONLY.
@@ -53,11 +53,11 @@ Only include news that would make a real investor change their position - ignore
 
 | Company | P/E Ratio | P/S Ratio | Profit Margin | Market Cap (B) |
 |---------|-----------|-----------|---------------|-----------------|
-| AAPL | 31.28 | 7.48 | 24.30% | 2993.44B |
+| AAPL | 31.53 | 7.54 | 24.30% | 3017.19B |
 | Competitor 1 | value | value | value | value |
 | Competitor 2 | value | value | value | value |
 
-- For AAPL, use ONLY the Finviz values already provided: P/E: 31.28, P/S: 7.48, Profit Margin: 24.30%, Market Cap: 2993.44B
+- For AAPL, use ONLY the Finviz values already provided: P/E: 31.53, P/S: 7.54, Profit Margin: 24.30%, Market Cap: 3017.19B
 - After the table, make ONE CLEAR STATEMENT about AAPL's competitive position - is it a leader or laggard?
 - State directly whether AAPL is overvalued or undervalued against these peers - no hedging
 

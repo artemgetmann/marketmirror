@@ -3,11 +3,11 @@
 Create a direct, no-BS analysis table for AAPL using these metrics. Start with a one-sentence verdict on what AAPL actually is at its core.
 
 Valuation & Growth:
-- P/E (TTM): 31.28
-- P/S: 7.48
-- PEG Ratio: 3.87
-- P/FCF: 30.39
-- P/B: 44.83
+- P/E (TTM): 31.53
+- P/S: 7.54
+- PEG Ratio: 3.90
+- P/FCF: 30.64
+- P/B: 45.18
 
 Profitability:
 - ROE: 138.02%
@@ -23,7 +23,7 @@ Qualitative Factors:
 - Insider Ownership: 0.10%
 - Insider Transactions: -1.92%
 - Dividend TTM: 1.01 (0.50%)
-- Market Cap: 2993.44B
+- Market Cap: 3017.19B
 - Option/Short: Yes / Yes
 
 Formatting Requirements:
