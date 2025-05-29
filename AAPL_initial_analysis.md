@@ -1,22 +1,18 @@
-Apple is a cash-printing luxury tech empire with a price tag that pretends growth is infinite.
-
-| Metric               | Value      | Commentary                                                                                   |
-|----------------------|------------|---------------------------------------------------------------------------------------------|
-| **P/E (TTM)**        | 31.53      | Overpriced for a company this mature—market is paying for nostalgia, not future growth.      |
-| **P/S**              | 7.54       | Sky-high—investors are ignoring slowing revenue expansion.                                   |
-| **PEG Ratio**        | 3.90       | Growth is nowhere near justifying this premium—PEG this high is a red flag.                 |
-| **P/FCF**            | 30.64      | Paying luxury prices for cash flow—no margin of safety here.                                |
-| **P/B**              | 45.18      | Absurd—Apple’s moat is brand, not tangible assets, but this is way past rational.           |
-| **ROE**              | 138.02%    | Off-the-charts—debt-fueled, but Apple turns capital into profit better than anyone.         |
-| **ROA**              | 29.10%     | Elite—Apple squeezes real returns from every dollar of assets.                              |
-| **Profit Margin**    | 24.30%     | Fortress margins—pricing power and operational discipline, period.                          |
-| **Sales Growth (5Y)**| 9.18%      | Respectable, but slowing—this isn’t a hypergrowth story anymore.                            |
-| **Current Ratio**    | 0.82       | Weak—Apple leans on its cash machine, but liquidity risk is real if the engine sputters.    |
-| **Debt/Equity**      | 1.47       | High—Apple is leveraged up, but the returns justify it (for now).                           |
-| **Insider Ownership**| 0.10%      | Pathetic—founders and execs aren’t betting their own skin.                                  |
-| **Insider Transactions** | -1.92% | Insiders are selling—never a bullish signal.                                                |
-| **Dividend TTM**     | 1.01 (0.50%)| Token payout—Apple hoards cash for buybacks, not shareholders.                              |
-| **Market Cap**       | 3017.19B   | Colossal—too big to move the needle with new products.                                      |
-| **Option/Short**     | Yes / Yes  | Heavily traded—hedge funds play both sides, volatility is baked in.                         |
-
-MarketMirror doesn't wear suits. Double-check the numbers. Even AI makes mistakes. Think for yourself — that's kind of the whole point.
+| Metric                     | Value         | Commentary / Assessment                                                                                                                                                           |
+|----------------------------|--------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| P/E (TTM)                  | 31.37        | Elevated vs. S&P 500 average (~20); reflects premium for brand, ecosystem, and cash flow stability. Not cheap, but not outlandish for a tech leader with fortress margins.         |
+| P/S                        | 7.50         | High for hardware, but justified by Apple’s pricing power and sticky customer base. Market expects continued monetization and ecosystem lock-in.                                    |
+| PEG Ratio                  | 3.88         | Well above 1; signals slower expected growth relative to price. Market is paying up for safety and brand, but this is a drag for pure growth investors.                            |
+| P/FCF                      | 30.49        | Expensive but supported by Apple’s consistent, massive free cash flow. Market is confident in cash generation even during cyclical slowdowns.                                      |
+| P/B                        | 44.96        | Exceptionally high; Apple’s value is intangible (brand, IP, ecosystem), so book value is less relevant here. Not a concern unless asset impairment risk rises.                     |
+| ROE                        | 138.02%      | Astronomical; driven by buybacks and asset-light model. Indicates extreme capital efficiency, but also boosted by high leverage.                                                  |
+| ROA                        | 29.10%       | Outstanding; Apple extracts huge profits from its asset base. Reflects operational excellence and scale advantages.                                                               |
+| Profit Margin              | 24.30%       | Elite for consumer hardware/services. Shows pricing power, supply chain mastery, and recurring revenue from services.                                                             |
+| Sales Growth (5Y)          | 9.18%        | Solid for a $3T company, but below hypergrowth peers. Reflects maturity; future upside depends on new product cycles and services expansion.                                      |
+| Current Ratio              | 0.82         | Below 1.0; technically a risk, but mitigated by Apple’s cash hoard and access to capital. Not a red flag for a company with Apple’s creditworthiness.                             |
+| Debt/Equity                | 1.47         | High for a tech giant, but manageable given cash flows and low rates. Apple uses leverage for buybacks and tax efficiency, not survival.                                          |
+| Insider Ownership          | 0.10%        | Minimal; typical for mega-caps. Founders have exited. No alignment concern, but little “skin in the game” from insiders.                                                          |
+| Insider Transactions       | -1.92%       | Slight net selling; not unusual at this scale. Not a major bearish signal unless trend accelerates.                                                                               |
+| Dividend TTM               | 1.01 (0.50%) | Token yield; Apple prioritizes buybacks over dividends. Not a yield play, but shows confidence in cash flows.                                                                     |
+| Market Cap                 | 3002.70B     | Absolute behemoth. Scale limits outsized growth but ensures resilience and pricing power.                                                                                        |
+| Option/Short               | Yes / Yes    | Highly liquid options and short interest; reflects institutional focus and hedging activity. No liquidity or trading constraints.                                                 |
