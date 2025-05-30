@@ -1,22 +1,18 @@
-TSLA is a hype-fueled cash machine with real innovation, but the market’s pricing it like tomorrow’s monopoly when today’s margins look mortal.
-
-| Metric                  | Value       | Commentary                                                                 |
-|-------------------------|-------------|---------------------------------------------------------------------------|
-| P/E (TTM)               | 196.27      | **Absurdly overpriced—you're paying 200 years of earnings for the privilege.** |
-| P/S                     | 11.99       | **Market is betting on wild future growth—this is nosebleed territory.**        |
-| PEG Ratio               | 10.52       | **Growth premium is off the charts—this isn’t justified by current momentum.**  |
-| P/FCF                   | 169.32      | **Free cash flow is a rounding error at this valuation—dangerously rich.**      |
-| P/B                     | 15.39       | **You're paying 15x book for a car company—brand premium, not asset value.**    |
-| ROE                     | 9.16%       | **Decent, not elite—Apple laughs at this number.**                             |
-| ROA                     | 5.43%       | **Mediocre—capital isn’t working overtime here.**                              |
-| Profit Margin           | 6.65%       | **Thin for a supposed tech leader—this is car company reality.**                |
-| Sales Growth (5Y)       | 34.02%      | **Monster growth—this is why the cult exists.**                                |
-| Current Ratio           | 2.00        | **No liquidity drama—Tesla can pay its bills.**                                |
-| Debt/Equity             | 0.18        | **Balance sheet is fortress-level—no leverage trap here.**                     |
-| Insider Ownership       | 12.90%      | **Elon’s got real skin in the game—alignment matters.**                        |
-| Insider Transactions    | -0.22%      | **Insiders quietly cashing out—read the room.**                                |
-| Dividend TTM            | -           | **Zero payout—every dollar stays in the growth machine.**                      |
-| Market Cap              | 1147.97B    | **Mega-cap status—liquid, but hard to move the needle now.**                   |
-| Option/Short            | Yes / Yes   | **Volatility playground—expect wild swings, not sleepy gains.**                |
-
-MarketMirror doesn't wear suits. Double-check the numbers. Even AI makes mistakes. Think for yourself — that's kind of the whole point.
+| Metric                  | Value       | Commentary / Qualitative Assessment                                                                                          |
+|-------------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------|
+| **P/E (TTM)**           | 192.42      | Extremely elevated; reflects massive future growth expectations. Far above auto/tech averages, but market pricing in dominance and innovation. |
+| **P/S**                 | 11.76       | High for an automaker, but in line with premium tech companies. Implies market sees Tesla as more than a car company.        |
+| **PEG Ratio**           | 10.32       | Suggests valuation is rich even after accounting for growth; typically <2 is attractive, but Tesla trades on vision premium. |
+| **P/FCF**               | 165.99      | Expensive relative to free cash flow; market is betting on step-change in future FCF as scale and AI monetization kick in.   |
+| **P/B**                 | 15.09       | Steep; indicates high market confidence in intangible assets (brand, IP, AI) and future returns rather than hard assets.     |
+| **ROE**                 | 9.16%       | Respectable, but not exceptional for tech; room to expand as margins improve and higher-margin software/AI revenues grow.    |
+| **ROA**                 | 5.43%       | Solid for a capital-intensive business; reflects efficient asset utilization compared to legacy automakers.                  |
+| **Profit Margin**       | 6.65%       | Above traditional auto peers, but below mature tech. Margin expansion is a key bull thesis as software/robotaxi scale.       |
+| **Sales Growth (5Y)**   | 34.02%      | Exceptional growth; best-in-class for large caps. Shows Tesla’s ability to capture market share and expand TAM.              |
+| **Current Ratio**       | 2.00        | Strong liquidity; well above 1.0, indicating no short-term solvency issues.                                                  |
+| **Debt/Equity**         | 0.18        | Very low leverage; Tesla is conservatively financed, rare for a high-growth company and a major financial strength.          |
+| **Insider Ownership**   | 12.90%      | High; strong alignment with shareholders. Elon Musk’s stake is a powerful signal of conviction.                              |
+| **Insider Transactions**| -0.36%      | Slight net selling, but not enough to be concerning given overall high insider ownership and CEO’s unique compensation.       |
+| **Dividend TTM**        | -           | No dividend; all capital reinvested for growth, typical for disruptive innovators.                                           |
+| **Market Cap**          | 1125.43B    | Mega-cap status; ensures liquidity, institutional attention, and index inclusion.                                            |
+| **Option/Short**        | Yes / Yes   | Heavy options and short interest; creates volatility and potential for sharp moves on narrative shifts or short squeezes.     |

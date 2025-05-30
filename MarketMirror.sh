@@ -296,6 +296,25 @@ ${enhanced_analysis}
 
 *MarketMirror is not a financial advisor. It doesn't wear suits, and it won't tell you what to do. Always double-check the numbers — even AI makes mistakes sometimes. Think for yourself — that's kind of the whole point. 😉*"
 
+# Remove all Wikipedia references from final analysis
+debug "Removing Wikipedia references..."
+
+# Replace any direct URLs to Wikipedia (handles markdown links)
+final_analysis=$(echo "$final_analysis" | sed -E 's|https?://([^) ]*wikipedia[^) ]*)|Source|g')
+
+# Replace any text matching en.wikipedia.org pattern
+final_analysis=$(echo "$final_analysis" | sed -E 's|en\.wikipedia\.org[^) ]*|Source|g')
+
+# Replace citations that explicitly mention Wikipedia
+final_analysis=$(echo "$final_analysis" | sed -E 's|\([^)]*[Ww]ikipedia[^)]*\)|\(Source\)|g')
+
+# Fix any "Source: Source" redundancies
+final_analysis=$(echo "$final_analysis" | sed -E 's|Source: Source|Source|g')
+
+# Ensure proper parentheses pairing around Source references
+final_analysis=$(echo "$final_analysis" | sed -E 's|\(Source$|\(Source\)|g')
+final_analysis=$(echo "$final_analysis" | sed -E 's|\(Source |\(Source\) |g')
+
 # For debugging, save the complete analysis locally only
 output_file="${TICKER}_comprehensive_analysis_$(date +%Y%m%d).md"
 echo "$final_analysis" > "$output_file" 2>/dev/null
