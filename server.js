@@ -168,11 +168,20 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Allow if it's from lovable domains
+    // Allow if it's from approved domains
     if (
+      // Lovable domains
       origin === 'https://lovable.dev' ||
       origin === 'https://marketmirror-clarity-view.lovable.dev' ||
       origin.endsWith('.lovable.app') || // This handles all preview URLs
+      
+      // Vercel domains
+      origin === 'https://trymarketmirror.com' ||
+      origin === 'https://www.trymarketmirror.com' ||
+      origin === 'https://marketmirror.vercel.app' ||
+      origin.endsWith('.vercel.app') || // Handle preview deployments
+      
+      // Local development
       origin === 'http://localhost:3000' ||
       origin === 'http://localhost:8080'
     ) {
