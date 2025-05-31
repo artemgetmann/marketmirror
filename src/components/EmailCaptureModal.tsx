@@ -49,7 +49,7 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
       
       // Currently this API endpoint is not implemented on the backend
       // This will need to be updated when the backend is ready
-      const response = await fetch('https://marketmirror-api.onrender.com/subscribe', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

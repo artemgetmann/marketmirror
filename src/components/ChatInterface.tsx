@@ -614,7 +614,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
 
     try {
       const response = await fetch(
-        "https://marketmirror-api.onrender.com/followup",
+        `${import.meta.env.VITE_API_URL}/followup`,
         {
           method: "POST",
           headers: {

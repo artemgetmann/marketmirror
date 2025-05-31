@@ -8,7 +8,7 @@
  */
 export async function getAdminToken(password: string): Promise<string | null> {
   try {
-    const response = await fetch('https://marketmirror-api.onrender.com/admin/login', {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

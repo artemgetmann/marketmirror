@@ -33,6 +33,13 @@ cd <YOUR_PROJECT_NAME>
 npm i
 
 # Step 4: Start the development server with auto-reloading and an instant preview.
+# For local development API:
+npm run dev:local
+
+# For production API:
+npm run dev:prod
+
+# Default (uses the environment from .env):
 npm run dev
 ```
 
@@ -49,6 +56,24 @@ npm run dev
 - Select the "Codespaces" tab.
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
+
+## API Environment Configuration
+
+This project uses environment variables to manage API endpoints, making it easy to switch between local development and production environments.
+
+### Available environments:
+
+- **Development**: Points to local API (`http://localhost:3000`)  
+  Run with: `npm run dev:local`
+
+- **Production**: Points to production API (`https://marketmirror-api.onrender.com`)  
+  Run with: `npm run dev:prod`
+
+### How it works:
+
+- API endpoints are configured using the `VITE_API_URL` environment variable
+- All API requests use this variable: `` `${import.meta.env.VITE_API_URL}/endpoint` ``
+- No hardcoded URLs - switching environments is as simple as using a different npm script
 
 ## What technologies are used for this project?
 

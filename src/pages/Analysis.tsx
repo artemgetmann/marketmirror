@@ -69,7 +69,7 @@ const fetchAnalysis = async (
   
   try {
     const response = await fetch(
-      "https://marketmirror-api.onrender.com/analyze",
+      `${import.meta.env.VITE_API_URL}/analyze`,
       {
         method: "POST",
         headers: {
