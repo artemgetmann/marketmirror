@@ -82,17 +82,18 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
     if (!sessionId || !ticker) return;
     
     try {
-      // Make a minimal request to check status with the current backend state
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/followup`, {
+      // Use the /analyze endpoint instead of /followup for status checks
+      // This ensures that viewing previous analyses doesn't count against follow-up limits
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          question: "__status_check__", // Special marker
-          sessionId,
           ticker,
-          statusCheckOnly: true // Flag to indicate this is just a status check
+          sessionId,
+          statusCheckOnly: true, // Flag to indicate this is just a status check
+          viewPreviousOnly: true  // Flag to indicate we're just viewing a previous analysis
         }),
       });
       
@@ -101,6 +102,10 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
         const errorData = await response.json();
         
         if (!isMounted.current) return;
+        
+        // Check if this is a "real" rate limit or just a "view previous" request
+        // We don't want to disable the input field if the user is just viewing previous analyses
+        const isViewingPrevious = errorData.canAccessCached === true;
         
         // Create rate limit info object
         const rateLimitInfo = {
@@ -116,10 +121,13 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           })
         };
         
-        // Set rate limit info in state
-        setIsRateLimited(true);
-        setRateLimitInfo(rateLimitInfo);
-        setShowEmailModal(true);
+        // Only set rate limited if we're not viewing previous analyses
+        if (!isViewingPrevious) {
+          // Set rate limit info in state
+          setIsRateLimited(true);
+          setRateLimitInfo(rateLimitInfo);
+          setShowEmailModal(true);
+        }
         
         // Store the latest rate limit info in local storage with timestamp
         localStorage.setItem(`followup_session_${sessionId}`, JSON.stringify({
