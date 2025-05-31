@@ -168,11 +168,20 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Allow if it's from lovable domains
+    // Allow if it's from approved domains
     if (
+      // Lovable domains
       origin === 'https://lovable.dev' ||
       origin === 'https://marketmirror-clarity-view.lovable.dev' ||
       origin.endsWith('.lovable.app') || // This handles all preview URLs
+      
+      // Vercel domains
+      origin === 'https://trymarketmirror.com' ||
+      origin === 'https://www.trymarketmirror.com' ||
+      origin === 'https://marketmirror.vercel.app' ||
+      origin.endsWith('.vercel.app') || // Handle preview deployments
+      
+      // Local development
       origin === 'http://localhost:3000' ||
       origin === 'http://localhost:8080'
     ) {
@@ -616,10 +625,6 @@ app.post('/followup', async (req, res) => {
   // Get the ticker from the request or use the default one
   const tickerToUse = requestedTicker ? requestedTicker.toUpperCase() : sessionStore[sessionId].ticker;
   
-  // Define variables at function level for proper scoping
-  let messageHistory = [];
-  let ticker = '';
-  
   // Log follow-up question event
   logEvent({
     event: "followup_submitted",
@@ -661,7 +666,7 @@ app.post('/followup', async (req, res) => {
   try {
     // Check if user has analyzed multiple tickers and wants to specify one
     const userTickers = Array.from(userAnalysisHistory[sessionId] || []);
-    ticker = sessionStore[sessionId].ticker; // Default to most recent ticker
+    let ticker = sessionStore[sessionId].ticker; // Default to most recent ticker
     
     // If user requested a specific ticker
     if (requestedTicker) {
@@ -680,17 +685,20 @@ app.post('/followup', async (req, res) => {
     }
     
     // Get session conversation history for this ticker
-    messageHistory = ticker === sessionStore[sessionId].ticker ? [...sessionStore[sessionId].messages] : [];
+    let messageHistory = [];
     
-    // Find cached analysis for requested ticker
-    if (ticker !== sessionStore[sessionId].ticker) {
+    // If using most recent ticker, use current session messages
+    if (ticker === sessionStore[sessionId].ticker) {
+      messageHistory = [...sessionStore[sessionId].messages];
+    } else {
+      // Find cached analysis for requested ticker
       if (analysisCache[ticker] && 
           (Date.now() - analysisCache[ticker].timestamp < CACHE_EXPIRY)) {
         // Initialize with original analysis
-        messageHistory.push(
+        messageHistory = [
           { role: 'user', content: `Analyze the stock ticker ${ticker}` },
           { role: 'assistant', content: analysisCache[ticker].data.analysis }
-        );
+        ];
       } else {
         return res.status(404).json({
           error: `Analysis for ${ticker} has expired. Please analyze it again.`,
@@ -819,64 +827,13 @@ app.post('/followup', async (req, res) => {
       console.error('Error extracting response:', extractError);
       aiAnswer = 'Failed to extract response from AI.';
     }
-    
-    // Clean the answer and update message history
-    const cleanedAnswer = cleanAnalysisText(aiAnswer);
-    messageHistory.push({ role: 'assistant', content: cleanedAnswer });
-    
-    // If this is for the current ticker, update the main session messages
-    if (ticker === sessionStore[sessionId].ticker) {
-      sessionStore[sessionId].messages = messageHistory;
-    }
-    
-    // Refresh session time
-    sessionStore[sessionId].timestamp = Date.now();
-    
-    // Increment follow-up counter for this specific ticker
-    sessionStore[sessionId].followupCounters[ticker]++;
-    
-    // Debug log the counter
-    console.log(`Follow-up count for ${ticker}: ${sessionStore[sessionId].followupCounters[ticker]} (session ${sessionId})`);
-    
-    // For all tickers, keep track of how many follow-ups remain
-    const followupCounts = {};
-    const remainingFollowups = {};
-    
-    // Get counts for all analyzed tickers
-    userTickers.forEach(t => {
-      followupCounts[t] = sessionStore[sessionId].followupCounters[t] || 0;
-      remainingFollowups[t] = MAX_FOLLOWUPS_PER_TICKER - followupCounts[t];
-    });
-    
-    // Return the response to the client
-    return res.json({ 
-      answer: cleanedAnswer,
-      sessionId: sessionId,
-      ticker: ticker,
-      followupInfo: {
-        // For current ticker
-        currentTicker: ticker,
-        followupCount: sessionStore[sessionId].followupCounters[ticker],
-        followupLimit: MAX_FOLLOWUPS_PER_TICKER,
-        remainingFollowups: MAX_FOLLOWUPS_PER_TICKER - sessionStore[sessionId].followupCounters[ticker],
-        // For all tickers
-        allTickers: userTickers,
-        tickerCounts: followupCounts,
-        tickerRemaining: remainingFollowups
-      },
-      usageInfo: {
-        usageCount: req.rateLimit?.current || 0,
-        usageLimit: req.rateLimit?.limit || 2,
-        remainingUses: req.rateLimit?.remaining || 2
-      }
-    });
   } catch (err) {
     console.error('Error in /followup:', err.response?.data || err.message);
     return res.status(500).json({ error: 'Failed to get AI response.' });
   }
   
-  // IMPORTANT: We're using messageHistory from the function scope above
-  // DO NOT re-run the API call here, it was already done in try block
+  // Add the new user question
+  messageHistory.push({ role: 'user', content: question });
   
   // If in mock mode, use mock follow-up responses
   if (MOCK_API_CALLS) {
@@ -934,6 +891,108 @@ app.post('/followup', async (req, res) => {
         remainingUses: req.rateLimit?.remaining || 2
       }
     });
+  }
+  
+  // For non-mock mode, proceed with actual API call
+  // Create context from previous conversation
+  const contextFromHistory = messageHistory.map(msg => {
+    if (msg.role === 'system') return msg.content;
+    return `${msg.role}: ${msg.content}`;
+  }).join('\n\n');
+  
+  try {
+    const response = await axios.post('https://api.openai.com/v1/responses', {
+      model: 'gpt-4',
+      input: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'input_text',
+              text: question
+            }
+          ]
+        }
+      ],
+      text: {
+        format: {
+          type: 'text'
+        }
+      },
+      reasoning: {},
+      temperature: 0.7,
+      max_output_tokens: 4000,
+      top_p: 1,
+      store: true
+    }, {
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    // Extract the response
+    let aiAnswer = '';
+    try {
+      aiAnswer = response.data.output.find(item => item.type === 'message')?.content[0].text || '';
+    } catch (extractError) {
+      console.error('Error extracting response:', extractError);
+      aiAnswer = 'Failed to extract response from AI.';
+    }
+    
+    const cleanedAnswer = cleanAnalysisText(aiAnswer);
+    
+    // Update the session with both the question and answer
+    messageHistory.push({ role: 'assistant', content: cleanedAnswer });
+    
+    // If this is for the current ticker, update the main session messages
+    if (ticker === sessionStore[sessionId].ticker) {
+      sessionStore[sessionId].messages = messageHistory;
+    }
+    
+    // Refresh session time
+    sessionStore[sessionId].timestamp = Date.now();
+    
+    // Increment follow-up counter for this specific ticker
+    sessionStore[sessionId].followupCounters[ticker]++;
+    
+    // Debug log the counter
+    console.log(`Follow-up count for ${ticker}: ${sessionStore[sessionId].followupCounters[ticker]} (session ${sessionId})`);
+    
+    // For all tickers, keep track of how many follow-ups remain
+    const followupCounts = {};
+    const remainingFollowups = {};
+    
+    // Get counts for all analyzed tickers
+    userTickers.forEach(t => {
+      followupCounts[t] = sessionStore[sessionId].followupCounters[t] || 0;
+      remainingFollowups[t] = MAX_FOLLOWUPS_PER_TICKER - followupCounts[t];
+    });
+    
+    return res.json({ 
+      answer: cleanedAnswer,
+      sessionId: sessionId,
+      ticker: ticker,
+      followupInfo: {
+        // For current ticker
+        currentTicker: ticker,
+        followupCount: sessionStore[sessionId].followupCounters[ticker],
+        followupLimit: MAX_FOLLOWUPS_PER_TICKER,
+        remainingFollowups: MAX_FOLLOWUPS_PER_TICKER - sessionStore[sessionId].followupCounters[ticker],
+        // For all tickers
+        allTickers: userTickers,
+        tickerCounts: followupCounts,
+        tickerRemaining: remainingFollowups
+      },
+      usageInfo: {
+        usageCount: req.rateLimit?.current || 0,
+        usageLimit: req.rateLimit?.limit || 2,
+        remainingUses: req.rateLimit?.remaining || 2
+      }
+    });
+  } catch (err) {
+    console.error('Error in /followup:', err.response?.data || err.message);
+    return res.status(500).json({ error: 'Failed to get AI response.' });
   }
 });
 
