@@ -114,13 +114,14 @@ Authorization: Bearer [jwt-token]
 ```
 
 ### POST /followup
-Allows users to ask follow-up questions about a previously analyzed stock. This endpoint requires a valid sessionId from a prior analysis.
+Allows users to ask follow-up questions about a previously analyzed stock. This endpoint requires a valid sessionId from a prior analysis. The system maintains conversation history for contextual follow-ups.
 
 #### Request body
 ```json
 {
   "question": "What about their dividend yield?",
-  "sessionId": "unique-user-session-id"
+  "sessionId": "unique-user-session-id",
+  "ticker": "AAPL"  // Optional - defaults to the ticker from the original analysis
 }
 ```
 
@@ -129,7 +130,20 @@ Allows users to ask follow-up questions about a previously analyzed stock. This 
 {
   "answer": "... detailed answer to follow-up question ...",
   "sessionId": "unique-user-session-id",
-  "ticker": "AAPL"
+  "ticker": "AAPL",
+  "followupInfo": {
+    "currentTicker": "AAPL",
+    "followupCount": 1,
+    "followupLimit": 3,
+    "remainingFollowups": 2,
+    "allTickers": ["AAPL"],
+    "tickerCounts": {
+      "AAPL": 1
+    },
+    "tickerRemaining": {
+      "AAPL": 2
+    }
+  }
 }
 ```
 
@@ -140,6 +154,47 @@ Allows users to ask follow-up questions about a previously analyzed stock. This 
   "sessionExpired": true
 }
 ```
+
+#### Rate Limit Response
+```json
+{
+  "error": "You have reached the maximum number of follow-up questions for AAPL.",
+  "followupLimit": 3,
+  "ticker": "AAPL",
+  "message": "Please start a new analysis to ask more questions.",
+  "availableTickers": ["AAPL", "TSLA"]
+}
+```
+
+## Session Memory and Follow-ups
+
+MarketMirror's API includes a sophisticated session memory system that enables contextual conversation about stock analyses.
+
+### Key Features
+
+1. **Conversation History**: The system maintains full message history between the initial analysis and follow-up questions, allowing it to reference previous questions and answers.
+
+2. **Follow-up Limits**: Each ticker has a limit of 3 follow-up questions per 24-hour session. This limit is tracked independently for each ticker.
+
+3. **Session Structure**: Each session contains:
+   - `messages`: Array of conversation objects with `{role, content}` format
+   - `followupCounters`: Tracks the number of follow-ups used per ticker
+   - `timestamp`: Used for session expiry tracking
+
+4. **Model Technology**: All follow-up questions are processed using OpenAI's GPT-4.1 model with web search capability for current information.
+
+5. **Session Persistence**: Sessions expire after 24 hours of inactivity, after which a new analysis must be performed.
+
+6. **Self-Reference**: Users can ask questions about previous interactions, such as "What was my last question?" or "What did you say about revenue?"
+
+### Example Conversation Flow
+
+1. User performs initial analysis on ticker "AAPL"
+2. User asks follow-up: "What about their dividend yield?"
+3. User asks follow-up: "How does it compare to Microsoft?"
+4. User asks follow-up: "Summarize our conversation"
+
+The system will maintain context throughout this entire conversation, with each response building on previous context.
 
 ## Mock API Mode for Testing
 
