@@ -349,8 +349,8 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
         }
       }
 
-      // Check follow-up status from the backend
-      checkFollowupStatus();
+      // We no longer automatically check follow-up status to prevent unnecessary API calls
+      // and avoid using up follow-up questions. Status will be checked when needed.
     }
   }, [sessionId, ticker]);
 
