@@ -1,5 +1,0 @@
-WORK IN PROGRESS — DO NOT PUSH TO MAIN
-
-Currently working on a testing/feature branch.
-Main is NOT up to date with the latest changes.
-Once the front-end is fixed and fully tested, only then merge/push to main.
