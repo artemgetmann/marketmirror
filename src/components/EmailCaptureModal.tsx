@@ -105,9 +105,9 @@ const EmailCaptureModal: React.FC<EmailCaptureModalProps> = ({
             {isSubmitted ? 'Welcome to the Rebellion' : (customTitle || 'You\'ve Reached Today\'s Limit')}
           </h3>
           <button 
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
               onClose();
-              window.location.href = '/';
             }}
             className="text-gray-400 hover:text-gray-600 focus:outline-none"
             aria-label="Close modal"

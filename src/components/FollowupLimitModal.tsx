@@ -59,6 +59,11 @@ const FollowupLimitModal: React.FC<FollowupLimitModalProps> = ({
     onClose();
     navigate('/');
   };
+  
+  const handleCloseOnly = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
@@ -68,7 +73,10 @@ const FollowupLimitModal: React.FC<FollowupLimitModalProps> = ({
             {isSubmitted ? 'You\'re on the Waitlist' : 'Follow-up Limit Reached'}
           </h3>
           <button 
-            onClick={onClose}
+            onClick={(e) => {
+              e.preventDefault();
+              onClose();
+            }}
             className="text-gray-400 hover:text-gray-600 focus:outline-none"
             aria-label="Close modal"
           >
@@ -89,7 +97,7 @@ const FollowupLimitModal: React.FC<FollowupLimitModalProps> = ({
               </div>
               
               <p className="pb-2">
-                MarketMirror is the rebellion.<br/>
+                MarketMiror is the rebellion.<br/>
                 Not built for institutions. Built for people who think for themselves.
               </p>
             </div>
