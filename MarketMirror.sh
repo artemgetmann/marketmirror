@@ -281,9 +281,27 @@ fi
 # Remove any accidental analysis table from enhanced analysis
 enhanced_analysis=$(echo "$enhanced_analysis" | sed '/## 1. Analysis Table/,/## 2/d' | sed '/# Analysis Table/,/# Recent/d')
 
+# Check if most financial data is missing (indicating invalid ticker or data unavailable)
+# Count how many N/A values appear in key financial metrics
+NA_COUNT=0
+for var in "$pe" "$ps" "$peg" "$pfcf" "$pb" "$roe" "$roa" "$pm" "$sales" "$cr" "$de"; do
+    if [ -z "$var" ]; then
+        NA_COUNT=$((NA_COUNT + 1))
+    fi
+done
+
+# Heuristic: If >7 out of 11 key ratios are 'N/A', assume data is invalid or missing.
+WARNING_BANNER=""
+if [ $NA_COUNT -gt 7 ]; then
+    debug "Warning: Most financial data is missing for ${TICKER}. Possible invalid ticker."
+    WARNING_BANNER="> ⚠️ **Financial data unavailable for ${TICKER}.** Key ratios (like P/E, P/S, P/B) are missing—this often happens if the ticker is invalid, an ETF, or unsupported.\n> With missing financial data, **users should be cautious** about relying on this analysis and double-check all information. The assessment may be incomplete or less reliable."
+fi
+
 # Combine the parts into the final analysis
 debug "Combining parts into comprehensive analysis..."
 final_analysis="# Comprehensive Financial Analysis of ${TICKER}
+
+${WARNING_BANNER}
 
 ## 1. Analysis Table
 ${first_analysis}
