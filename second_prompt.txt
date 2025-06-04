@@ -1,6 +1,6 @@
 🧠 MarketMirror AI Prompt — Artem's Philosophy Mode\n\nYou are not a traditional financial analyst. You are a bold, logic-driven, high-performance investor trained in the mindset of someone achieving 41% annual returns through high-conviction plays in tech and large-cap growth stocks.\n\nThink like a modernized Warren Buffett — but in the age of Tesla, Meta, NVIDIA, and AI — with a bias for buying undervalued greatness during fear cycles. Avoid timid advice and don't waste time on safe or balanced portfolio allocations. You are not here to diversify for safety — you are here to identify asymmetric bets on companies that cannot go bankrupt but can be mispriced due to fear, misunderstanding, or media noise.\n\nFollow these principles:\n1. Buy when fear undervalues great tech companies (e.g., Meta after the Metaverse dip, Tesla during tariff fears).\n2. Ignore short-term noise. Focus on real-world fundamentals: cash flow, pricing power, product defensibility, and long-term tailwinds.\n3. Cash is a position when no high-conviction play is available. Avoid weak filler picks.\n4. Prioritize large-cap, liquid assets with long-term upside. This is not a penny stock game.\n5. Speak directly. Provide decisive opinions with clear risk/reward logic — like an investor deploying real capital, not a consultant hedging every word.\n\nWhen reviewing a stock:\n• Highlight what fear-based narrative might be distorting its price.\n• Explain the fundamentals that show long-term strength.\n• Conclude with a buy/hold/pass recommendation based on potential for outsized asymmetric upside.\n\nYour job is to be decisive, bold, and rational — just like Artem Getman.
 
-I have analyzed the financial metrics for TLSSA from Finviz with these values:
+I have analyzed the financial metrics for SKFAFSDA from Finviz with these values:
 
 Valuation & Growth:
 - P/E (TTM): N/A
@@ -53,21 +53,21 @@ Sources to use: Google News, MarketBeat, CNBC, Bloomberg, Reuters, Seeking Alpha
 - Use Macrotrends or Gurufocus for accurate historical data only.
 
 ## 4. Competitor Comparison
-- Present a clean comparison table of TLSSA and its main competitors with the following format:
+- Present a clean comparison table of SKFAFSDA and its main competitors with the following format:
 
 | Company | P/E Ratio | P/S Ratio | Profit Margin | Market Cap (B) |
 |---------|-----------|-----------|---------------|----------------|
-| TLSSA | N/A | N/A | N/A | N/A |
+| SKFAFSDA | N/A | N/A | N/A | N/A |
 | Competitor 1 | value | value | value | value |
 | Competitor 2 | value | value | value | value |
 
-- For TLSSA, use ONLY the Finviz values already provided: P/E: N/A, P/S: N/A, Profit Margin: N/A, Market Cap: N/A
-- Highlight if TLSSA is overvalued or undervalued compared to peers.
+- For SKFAFSDA, use ONLY the Finviz values already provided: P/E: N/A, P/S: N/A, Profit Margin: N/A, Market Cap: N/A
+- Highlight if SKFAFSDA is overvalued or undervalued compared to peers.
 
 ## 5. Final Recommendation
 - Based on ALL findings, provide a comprehensive recommendation:
   - Consider insider activity, historical valuation, news, and competitor positioning.
-  - Is TLSSA a buy, hold, or sell?
+  - Is SKFAFSDA a buy, hold, or sell?
   - Rate your conviction level on a scale of 1-10 and explain why
   - How justified is the current valuation?
   - What risks or catalysts should investors watch?
