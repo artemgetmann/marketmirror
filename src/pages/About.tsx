@@ -170,7 +170,7 @@ const About = () => {
           </a>
           
           <a 
-            href="https://x.com/artem_getmann" 
+            href="https://x.com/artemgetman_" 
             target="_blank" 
             rel="noopener noreferrer"
             className="text-gray-500 hover:text-gray-900"
