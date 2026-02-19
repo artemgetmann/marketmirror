@@ -1,0 +1,39 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.swp
+.DS_Store
+npm-debug.log
+*.log
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated analysis artifacts
+*_initial_analysis.md
+*_comprehensive_analysis_*.md
+first_prompt.txt
+first_payload.json
+second_prompt.txt
+second_payload.json
+second_response_raw.json
+temp_response.json
+
+# Local test payloads and scratch files
+payload*.json
+test_payload.json
+
+# Backups
+*.backup
+*.backup.*
+server_*.js
+server.js.cors.enabled
+server.js.full.backup
+marketmirror_*.sh
+
+# Local operator notes
+ADMIN_ACCESS.local.md
+ADMIN_ACCESS.local.example.md
