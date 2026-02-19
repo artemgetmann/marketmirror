@@ -1,98 +1,53 @@
-# Welcome to your Lovable project
+# MarketMirror Clarity View
 
-## Project info
+Frontend application for MarketMirror.
 
-**URL**: https://lovable.dev/projects/12412d71-e46c-4ee1-9c80-759b926d0b8a
+Live product: [https://trymarketmirror.com](https://trymarketmirror.com)
 
-## How can I edit this code?
+## Local Setup
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/12412d71-e46c-4ee1-9c80-759b926d0b8a) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-# For local development API:
+```bash
+npm install
 npm run dev:local
-
-# For production API:
-npm run dev:prod
-
-# Default (uses the environment from .env):
-npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Environment
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The app needs:
 
-**Use GitHub Codespaces**
+- `VITE_API_URL`
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Defaults in this repo:
 
-## API Environment Configuration
+- local: `http://localhost:3000` (`npm run dev:local`)
+- prod API: `https://marketmirror-api.onrender.com` (`npm run dev:prod`)
 
-This project uses environment variables to manage API endpoints, making it easy to switch between local development and production environments.
+## Self-Hosting
 
-### Available environments:
+1. Deploy the API (`marketmirror-api`) and configure env vars there.
+2. Set frontend `VITE_API_URL` to your API URL.
+3. Build and deploy frontend:
 
-- **Development**: Points to local API (`http://localhost:3000`)  
-  Run with: `npm run dev:local`
+```bash
+npm run build
+npm run preview
+```
 
-- **Production**: Points to production API (`https://marketmirror-api.onrender.com`)  
-  Run with: `npm run dev:prod`
+## Scripts
 
-### How it works:
+- `npm run dev`
+- `npm run dev:local`
+- `npm run dev:prod`
+- `npm run build`
+- `npm run lint`
+- `npm run preview`
 
-- API endpoints are configured using the `VITE_API_URL` environment variable
-- All API requests use this variable: `` `${import.meta.env.VITE_API_URL}/endpoint` ``
-- No hardcoded URLs - switching environments is as simple as using a different npm script
+## Security Notes
 
-## What technologies are used for this project?
+- Admin JWT is stored in `localStorage` for browser sessions.
+- Avoid exposing secrets in any `VITE_*` variable.
+- PDF header rendering avoids direct `innerHTML` interpolation.
 
-This project is built with:
+## License
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/12412d71-e46c-4ee1-9c80-759b926d0b8a) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+MIT (see `LICENSE`).

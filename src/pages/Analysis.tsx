@@ -57,6 +57,45 @@ interface FetchAnalysisOptions {
   bypassCache?: boolean;
 }
 
+interface RateLimitedError {
+  isRateLimited: boolean;
+  status?: number;
+  message?: string;
+  resetTime?: string;
+  resetInSeconds?: number;
+  accessibleAnalyses?: string[];
+}
+
+const isRateLimitedError = (error: unknown): error is RateLimitedError => {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "isRateLimited" in error &&
+    (error as { isRateLimited?: unknown }).isRateLimited === true
+  );
+};
+
+const getErrorMessage = (error: unknown, fallback = "An error occurred"): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") {
+      return message;
+    }
+  }
+  return fallback;
+};
+
+const getErrorStatus = (error: unknown): number | null => {
+  if (typeof error === "object" && error !== null && "status" in error) {
+    const status = (error as { status?: unknown }).status;
+    return typeof status === "number" ? status : null;
+  }
+  return null;
+};
+
 const fetchAnalysis = async (
   ticker: string,
   options?: FetchAnalysisOptions,
@@ -67,81 +106,71 @@ const fetchAnalysis = async (
   // Get admin auth headers if available
   const authHeaders = getAuthHeaders();
   
-  try {
-    const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/analyze`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders, // Include admin token if available
-        },
-        body: JSON.stringify({
-          ticker,
-          bypassCache: options?.bypassCache,
-          sessionId, // Include sessionId in requests
-        }),
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL}/analyze`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders, // Include admin token if available
       },
-    );
+      body: JSON.stringify({
+        ticker,
+        bypassCache: options?.bypassCache,
+        sessionId, // Include sessionId in requests
+      }),
+    },
+  );
+  
+  // Handle rate limit response specifically (status 429)
+  if (response.status === 429) {
+    const errorData = await response.json();
     
-    // Handle rate limit response specifically (status 429)
-    if (response.status === 429) {
-      const errorData = await response.json();
+    // If we have accessible analyses with our rate limit error
+    if (errorData.accessibleAnalyses && Array.isArray(errorData.accessibleAnalyses)) {
+      // Store accessible analyses for later use
+      saveAccessibleAnalyses(errorData.accessibleAnalyses);
       
-      // If we have accessible analyses with our rate limit error
-      if (errorData.accessibleAnalyses && Array.isArray(errorData.accessibleAnalyses)) {
-        // Store accessible analyses for later use
-        saveAccessibleAnalyses(errorData.accessibleAnalyses);
-        
-        // Add our own flag to identify rate limit errors with accessible analyses
-        throw {
-          ...errorData,
-          isRateLimited: true,
-          status: 429
-        };
-      }
-      
-      // Standard rate limit error without accessible analyses
-      throw new Error(errorData.error || "You've reached your daily limit");
+      // Add our own flag to identify rate limit errors with accessible analyses
+      throw {
+        ...errorData,
+        isRateLimited: true,
+        status: 429
+      };
     }
     
-    // For other error responses
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || "Failed to fetch analysis");
-    }
-
-    // Process successful response
-    const data = await response.json();
-
-    // Ensure sessionId is included in the response data
-    if (!data.sessionId) {
-      console.warn("No session ID returned from API");
-    }
-    
-    // If usage info is provided, store it
-    if (data.usageInfo) {
-      saveUsageInfo(data.usageInfo);
-    }
-    
-    // Store the ticker in accessible analyses (both from history and the current ticker)
-    if (data.analysisHistory?.accessibleAnalyses) {
-      saveAccessibleAnalyses(data.analysisHistory.accessibleAnalyses);
-    } else {
-      // Always add the current ticker to accessible analyses on successful analysis
-      addToAccessibleAnalyses(ticker);
-    }
-
-    return data;
-  } catch (error) {
-    // If this is our custom rate limit error with accessible analyses, rethrow it
-    if (error && typeof error === 'object' && 'isRateLimited' in error) {
-      throw error;
-    }
-    
-    // Otherwise, rethrow the original error
-    throw error;
+    // Standard rate limit error without accessible analyses
+    throw new Error(errorData.error || "You've reached your daily limit");
   }
+
+  // For other error responses
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "Failed to fetch analysis");
+  }
+
+  // Process successful response
+  const data = await response.json();
+
+  // Ensure sessionId is included in the response data
+  if (!data.sessionId) {
+    console.warn("No session ID returned from API");
+  }
+  
+  // If usage info is provided, store it
+  if (data.usageInfo) {
+    saveUsageInfo(data.usageInfo);
+  }
+  
+  // Store the ticker in accessible analyses (both from history and the current ticker)
+  if (data.analysisHistory?.accessibleAnalyses) {
+    saveAccessibleAnalyses(data.analysisHistory.accessibleAnalyses);
+  } else {
+    // Always add the current ticker to accessible analyses on successful analysis
+    addToAccessibleAnalyses(ticker);
+  }
+
+  return data;
 };
 
 const Analysis = () => {
@@ -192,12 +221,12 @@ const Analysis = () => {
         }
         
         return result;
-      } catch (err: any) {
+      } catch (err: unknown) {
         // Check if this is our custom rate limit error with accessible analyses
-        if (err && typeof err === 'object' && 'isRateLimited' in err) {
+        if (isRateLimitedError(err)) {
           // Set rate limit info for UI display
           setIsRateLimited(true);
-          setRateLimitMessage(err.message || 'You have reached your daily limit');
+          setRateLimitMessage(err.message || "You have reached your daily limit");
           
           if (err.resetTime) {
             setRateLimitInfo({
@@ -216,15 +245,12 @@ const Analysis = () => {
           
           // If this ticker is in accessible analyses, try to get it from cache
           if (err.accessibleAnalyses?.includes(ticker)) {
-            try {
-              const cachedResult = await fetchAnalysis(ticker);
-              return cachedResult;
-            } catch (innerErr) {
-              // Just throw the error if we can't get cached analysis
-              throw innerErr;
-            }
+            return await fetchAnalysis(ticker);
           }
-        } else if (err.status === 429 || (typeof err.message === 'string' && err.message.includes("limit"))) {
+        } else if (
+          getErrorStatus(err) === 429 ||
+          getErrorMessage(err, "").toLowerCase().includes("limit")
+        ) {
           // Generic rate limit error (for backward compatibility)
           setRateLimitInfo({
             resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
@@ -235,7 +261,7 @@ const Analysis = () => {
           // For other errors, show error toast and the email modal
           toast({
             title: "Error Fetching Analysis",
-            description: err.message || "An error occurred",
+            description: getErrorMessage(err, "An error occurred"),
             variant: "destructive",
           });
           setRateLimitInfo(null);
@@ -290,7 +316,7 @@ const Analysis = () => {
 
       // Add PDF-specific styling
       const style = document.createElement("style");
-      style.innerHTML = `
+      style.textContent = `
         body {
           font-family: 'Helvetica', 'Arial', sans-serif;
           padding: 20px;
@@ -369,10 +395,19 @@ const Analysis = () => {
       // Create a header for PDF
       const header = document.createElement("div");
       header.className = "page-header";
-      header.innerHTML = `
-        <h1 style="margin:0;padding:0;font-size:24px;">${ticker.toUpperCase()} Financial Analysis</h1>
-        <p style="margin:5px 0;color:#666;font-size:14px;">Generated on ${new Date().toLocaleDateString()}</p>
-      `;
+      const title = document.createElement("h1");
+      title.style.margin = "0";
+      title.style.padding = "0";
+      title.style.fontSize = "24px";
+      title.textContent = `${ticker.toUpperCase()} Financial Analysis`;
+
+      const generatedOn = document.createElement("p");
+      generatedOn.style.margin = "5px 0";
+      generatedOn.style.color = "#666";
+      generatedOn.style.fontSize = "14px";
+      generatedOn.textContent = `Generated on ${new Date().toLocaleDateString()}`;
+
+      header.append(title, generatedOn);
       element.prepend(header);
 
       // Process tables for better formatting
@@ -380,8 +415,8 @@ const Analysis = () => {
 
       // First identify adjacent tables and merge their containers
       if (tables.length > 1) {
-        let currentTable = tables[0];
-        let tableGroups = [];
+        const currentTable = tables[0];
+        const tableGroups = [];
         let currentGroup = [currentTable];
 
         // Group adjacent tables

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type ComponentPropsWithoutRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Send, ChevronDown, ChevronUp, MessageCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -28,6 +28,10 @@ interface FollowupInfo {
   allTickers: string[];
   tickerCounts: Record<string, number>;
   tickerRemaining: Record<string, number>;
+}
+
+interface PersistedMessage extends Omit<Message, "timestamp"> {
+  timestamp: string | number | Date;
 }
 
 interface ChatInterfaceProps {
@@ -327,13 +331,15 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       if (savedMessages) {
         try {
           const parsed = JSON.parse(savedMessages);
-          // Convert string timestamps back to Date objects
-          const messagesWithDates = parsed.map((message: any) => ({
-            ...message,
-            timestamp: new Date(message.timestamp),
-            animationComplete: true // Ensure all loaded messages show completely
-          }));
-          setMessages(messagesWithDates);
+          if (Array.isArray(parsed)) {
+            // Convert string timestamps back to Date objects
+            const messagesWithDates = parsed.map((message: PersistedMessage) => ({
+              ...message,
+              timestamp: new Date(message.timestamp),
+              animationComplete: true // Ensure all loaded messages show completely
+            }));
+            setMessages(messagesWithDates);
+          }
         } catch (e) {
           console.error("Error parsing saved messages:", e);
         }
@@ -731,9 +737,10 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessageText = error instanceof Error ? error.message : "";
       // Only add generic error message if not already handled
-      if (error.message !== "Rate limit reached" && error.message !== "Session expired") {
+      if (errorMessageText !== "Rate limit reached" && errorMessageText !== "Session expired") {
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           content: "I couldn't answer that right now. Please try again later.",
@@ -842,7 +849,7 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
           remarkPlugins={[remarkGfm]}
           components={{
             // Custom rendering for links
-            a: ({ node, ...props }: any) => (
+            a: ({ node: _node, ...props }: ComponentPropsWithoutRef<"a"> & { node?: unknown }) => (
               <a 
                 {...props} 
                 target="_blank" 
@@ -851,32 +858,36 @@ export function ChatInterface({ sessionId, ticker }: ChatInterfaceProps) {
               />
             ),
             // Custom rendering for bold/strong
-            strong: ({ node, ...props }: any) => (
+            strong: ({ node: _node, ...props }: ComponentPropsWithoutRef<"strong"> & { node?: unknown }) => (
               <strong {...props} className="font-bold" />
             ),
             // Add styling for headers
-            h1: ({ node, ...props }: any) => (
+            h1: ({ node: _node, ...props }: ComponentPropsWithoutRef<"h1"> & { node?: unknown }) => (
               <h1 {...props} className="text-xl font-semibold mt-4 mb-2" />
             ),
-            h2: ({ node, ...props }: any) => (
+            h2: ({ node: _node, ...props }: ComponentPropsWithoutRef<"h2"> & { node?: unknown }) => (
               <h2 {...props} className="text-lg font-semibold mt-3 mb-2" />
             ),
-            h3: ({ node, ...props }: any) => (
+            h3: ({ node: _node, ...props }: ComponentPropsWithoutRef<"h3"> & { node?: unknown }) => (
               <h3 {...props} className="text-base font-semibold mt-2 mb-1" />
             ),
             // Add styling for lists
-            ul: ({ node, ...props }: any) => (
+            ul: ({ node: _node, ...props }: ComponentPropsWithoutRef<"ul"> & { node?: unknown }) => (
               <ul {...props} className="list-disc pl-5 my-2" />
             ),
-            ol: ({ node, ...props }: any) => (
+            ol: ({ node: _node, ...props }: ComponentPropsWithoutRef<"ol"> & { node?: unknown }) => (
               <ol {...props} className="list-decimal pl-5 my-2" />
             ),
             // Add styling for block quotes
-            blockquote: ({ node, ...props }: any) => (
+            blockquote: ({ node: _node, ...props }: ComponentPropsWithoutRef<"blockquote"> & { node?: unknown }) => (
               <blockquote {...props} className="border-l-4 border-gray-300 pl-4 italic my-2" />
             ),
             // Add styling for code blocks
-            code: ({ node, inline, ...props }: any) => (
+            code: ({
+              node: _node,
+              inline,
+              ...props
+            }: ComponentPropsWithoutRef<"code"> & { node?: unknown; inline?: boolean }) => (
               inline 
                 ? <code {...props} className="bg-gray-100 px-1 py-0.5 rounded text-[14px] font-mono" />
                 : <code {...props} className="block bg-gray-100 p-2 rounded text-[14px] font-mono overflow-x-auto my-2" />

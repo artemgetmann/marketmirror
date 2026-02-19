@@ -48,8 +48,8 @@ const FollowupLimitModal: React.FC<FollowupLimitModalProps> = ({
       }
       
       setIsSubmitted(true);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsSubmitting(false);
     }
