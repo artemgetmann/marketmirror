@@ -7,7 +7,7 @@ if (process.env.NODE_ENV !== 'production') {
 const { getMockAnalysis, getMockFollowupResponse } = require('./mock-responses');
 
 const express = require('express');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const Database = require('better-sqlite3');
@@ -25,10 +25,20 @@ const MOCK_API_CALLS = (process.env.MOCK_API_CALLS || 'false').toLowerCase() ===
 
 // JWT authentication setup
 const jwt = require('jsonwebtoken');
-const { expressjwt } = require('express-jwt');
-const JWT_SECRET = process.env.JWT_SECRET || 'REDACTED_JWT_SECRET';
+const JWT_SECRET = process.env.JWT_SECRET;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'M@rketM1rr0r-S3cure-P@s$w0rd!';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_AUTH_ENABLED = Boolean(JWT_SECRET && ADMIN_PASSWORD);
+const ALLOWED_ORIGINS = new Set(
+  (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .concat(['http://localhost:3000', 'http://localhost:8080'])
+);
+const TICKER_REGEX = /^[A-Z][A-Z0-9.-]{0,9}$/;
+const SESSION_ID_REGEX = /^[a-zA-Z0-9_-]{8,128}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const axios = require('axios');
 
 // Session store for conversation memory
@@ -40,6 +50,39 @@ const MAX_FOLLOWUPS_PER_TICKER = 3; // Maximum follow-up questions per ticker an
 
 // Track user's previously analyzed tickers for cached access
 const userAnalysisHistory = {};
+
+function normalizeTicker(input) {
+  if (typeof input !== 'string') return null;
+  const normalized = input.trim().toUpperCase();
+  return TICKER_REGEX.test(normalized) ? normalized : null;
+}
+
+function buildIpSessionId(ip) {
+  const normalizedIp = String(ip || 'unknown')
+    .replace(/[^a-zA-Z0-9]/g, '_')
+    .slice(0, 64);
+  return `ip_${normalizedIp}`;
+}
+
+function normalizeSessionId(candidate, fallbackIp) {
+  if (typeof candidate === 'string') {
+    const trimmed = candidate.trim();
+    if (SESSION_ID_REGEX.test(trimmed)) {
+      return trimmed;
+    }
+  }
+  return buildIpSessionId(fallbackIp);
+}
+
+function isValidEmail(email) {
+  return typeof email === 'string' && email.length <= 254 && EMAIL_REGEX.test(email);
+}
+
+function escapeCsvField(value) {
+  const stringValue = String(value ?? '');
+  const protectedValue = /^[=+\-@]/.test(stringValue) ? `'${stringValue}` : stringValue;
+  return `"${protectedValue.replace(/"/g, '""')}"`;
+}
 
 
 
@@ -162,29 +205,21 @@ function cleanAnalysisText(text) {
   return cleaned;
 }
 
-// Enable CORS with configuration to allow Lovable domains
+// Basic hardening headers and explicit CORS allowlist.
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  next();
+});
+
 app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (curl/server-to-server).
     if (!origin) return callback(null, true);
-    
-    // Allow if it's from approved domains
-    if (
-      // Lovable domains
-      origin === 'https://lovable.dev' ||
-      origin === 'https://marketmirror-clarity-view.lovable.dev' ||
-      origin.endsWith('.lovable.app') || // This handles all preview URLs
-      
-      // Vercel domains
-      origin === 'https://trymarketmirror.com' ||
-      origin === 'https://www.trymarketmirror.com' ||
-      origin === 'https://marketmirror.vercel.app' ||
-      origin.endsWith('.vercel.app') || // Handle preview deployments
-      
-      // Local development
-      origin === 'http://localhost:3000' ||
-      origin === 'http://localhost:8080'
-    ) {
+
+    if (ALLOWED_ORIGINS.has(origin)) {
       return callback(null, true);
     }
     
@@ -194,7 +229,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '32kb' }));
 
 // Health check endpoint
 app.get('/', (req, res) => {
@@ -214,14 +249,20 @@ app.get('/cache-status', (req, res) => {
 const analyzeLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000, // 24 hours
   max: 2, // limit each sessionId/IP to 2 analysis per day
-  keyGenerator: (req) => req.headers['x-session-id'] || req.body.sessionId || req.ip,
+  keyGenerator: (req) => normalizeSessionId(
+    req.headers['x-session-id'] || req.body.sessionId,
+    req.ip
+  ),
   handler: (req, res) => {
     // Calculate time until rate limit resets
     const resetTime = new Date(req.rateLimit.resetTime).toISOString();
     const secondsUntilReset = Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000);
     
     // Get session ID and user history
-    const sessionId = req.headers['x-session-id'] || req.body.sessionId || req.ip;
+    const sessionId = normalizeSessionId(
+      req.headers['x-session-id'] || req.body.sessionId,
+      req.ip
+    );
     const userHistory = Array.from(userAnalysisHistory[sessionId] || []);
     
     // Log rate limit event
@@ -270,7 +311,17 @@ Success: ${success}
 
 // Admin login endpoint
 app.post('/admin/login', (req, res) => {
+  if (!ADMIN_AUTH_ENABLED) {
+    return res.status(503).json({
+      success: false,
+      error: 'Admin auth is disabled. Set JWT_SECRET and ADMIN_PASSWORD to enable it.'
+    });
+  }
+
   const { username, password } = req.body;
+  if (typeof username !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ success: false, error: 'Username and password are required' });
+  }
   
   // Log login attempt
   const success = username === ADMIN_USERNAME && password === ADMIN_PASSWORD;
@@ -290,7 +341,7 @@ const bypassRateLimitForAdmin = (req, res, next) => {
   // Check for JWT in Authorization header
   const authHeader = req.headers.authorization;
   
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  if (ADMIN_AUTH_ENABLED && authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1];
     
     try {
@@ -310,8 +361,11 @@ const bypassRateLimitForAdmin = (req, res, next) => {
   }
   
   // Check if this is a request for a cached analysis
-  const ticker = req.body.ticker?.toUpperCase();
-  const sessionId = req.headers['x-session-id'] || req.body.sessionId || req.ip;
+  const ticker = normalizeTicker(req.body.ticker);
+  const sessionId = normalizeSessionId(
+    req.headers['x-session-id'] || req.body.sessionId,
+    req.ip
+  );
   
   if (ticker && ENABLE_CACHING) {
     // Track this ticker in user's history
@@ -344,7 +398,6 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
   // If admin bypass was used, add info to response
   const adminBypassUsed = req.adminBypass === true;
   const isCachedAnalysis = req.isCachedAnalysis === true;
-  console.log('Received request:', req.body);
   
   const { ticker, bypassCache } = req.body;
   
@@ -355,17 +408,23 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
   if (!ticker) {
     return res.status(400).json({ error: 'Ticker symbol is required' });
   }
-  
-  // Check API key before executing script (only in non-mock mode)
-  if (!MOCK_API_CALLS && !process.env.OPENAI_API_KEY) {
-    return res.status(500).json({ error: 'API key not configured on server' });
+
+  const tickerUppercase = normalizeTicker(ticker);
+  if (!tickerUppercase) {
+    return res.status(400).json({
+      error: 'Invalid ticker format. Use 1-10 chars: A-Z, 0-9, dot, or hyphen.'
+    });
   }
   
-  const tickerUppercase = ticker.toUpperCase();
+  // Check API key before executing script (only in non-mock mode)
+  if (!MOCK_API_CALLS && !API_KEY) {
+    return res.status(500).json({ error: 'API key not configured on server' });
+  }
+
   const now = Date.now();
   
   // Use provided session ID or create a persistent one based on IP
-  const sessionId = providedSessionId || requestIp;
+  const sessionId = normalizeSessionId(providedSessionId, requestIp);
   
   // Track this ticker in user's history regardless of cache status
   if (!userAnalysisHistory[sessionId]) {
@@ -502,16 +561,16 @@ app.post('/analyze', bypassRateLimitForAdmin, async (req, res) => {
   }
   
   // If not in mock mode, execute MarketMirror.sh with the provided ticker
-  exec(`./MarketMirror.sh ${tickerUppercase}`, { 
+  execFile('./MarketMirror.sh', [tickerUppercase], {
     timeout: 180000, // Increased timeout to 180 seconds (3 minutes) for web searches
     env: {
       ...process.env,
-      OPENAI_API_KEY: process.env.OPENAI_API_KEY
+      OPENAI_API_KEY: API_KEY
     }
   }, (error, stdout, stderr) => {
     if (error) {
       console.error(`Error executing script: ${error.message}`);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: 'Failed to generate analysis' });
     }
     
     // Log stderr to server logs but don't send to client
@@ -599,16 +658,29 @@ app.post('/followup', async (req, res) => {
   let userTickers = [];
   const { question, sessionId, ticker: requestedTicker } = req.body;
   
-  if (!question) {
+  if (typeof question !== 'string' || !question.trim()) {
     return res.status(400).json({ error: 'Question is required.' });
+  }
+
+  if (question.length > 2000) {
+    return res.status(400).json({ error: 'Question is too long (max 2000 characters).' });
   }
   
   if (!sessionId) {
     return res.status(400).json({ error: 'Session ID is required. Please provide the sessionId from your analysis request.' });
   }
+
+  if (typeof sessionId !== 'string' || !SESSION_ID_REGEX.test(sessionId)) {
+    return res.status(400).json({ error: 'Invalid session ID format.' });
+  }
+
+  const normalizedRequestedTicker = requestedTicker ? normalizeTicker(requestedTicker) : null;
+  if (requestedTicker && !normalizedRequestedTicker) {
+    return res.status(400).json({ error: 'Invalid ticker format for follow-up request.' });
+  }
   
   // In non-mock mode, check if API key is configured
-  if (!MOCK_API_CALLS && !process.env.OPENAI_API_KEY) {
+  if (!MOCK_API_CALLS && !API_KEY) {
     return res.status(500).json({ error: 'API key not configured on server' });
   }
   
@@ -627,7 +699,7 @@ app.post('/followup', async (req, res) => {
   }
   
   // Get the ticker from the request or use the default one
-  const tickerToUse = requestedTicker ? requestedTicker.toUpperCase() : sessionStore[sessionId].ticker;
+  const tickerToUse = normalizedRequestedTicker || sessionStore[sessionId].ticker;
   
   // Log follow-up question event
   logEvent({
@@ -673,9 +745,7 @@ app.post('/followup', async (req, res) => {
     ticker = sessionStore[sessionId].ticker; // Default to most recent ticker
 
     // If user requested a specific ticker
-    if (requestedTicker) {
-      const normalizedRequestedTicker = requestedTicker.toUpperCase();
-      
+    if (normalizedRequestedTicker) {
       // Check if the user has analyzed this ticker
       if (userTickers.includes(normalizedRequestedTicker)) {
         ticker = normalizedRequestedTicker;
@@ -815,7 +885,7 @@ app.post('/followup', async (req, res) => {
       },
       {
         headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${API_KEY}`,
           'Content-Type': 'application/json'
         }
       }
@@ -889,6 +959,10 @@ app.post('/followup', async (req, res) => {
 // Endpoint to get session information
 app.get('/session/:sessionId', (req, res) => {
   const { sessionId } = req.params;
+
+  if (!SESSION_ID_REGEX.test(sessionId)) {
+    return res.status(400).json({ error: 'Invalid session ID format' });
+  }
   
   if (!sessionStore[sessionId] || 
       (Date.now() - sessionStore[sessionId].timestamp > SESSION_EXPIRY)) {
@@ -911,9 +985,15 @@ app.get('/session/:sessionId', (req, res) => {
 app.post('/subscribe', async (req, res) => {
   const { email, sessionId, source = 'usage-limit' } = req.body;
   
-  if (!email) {
-    return res.status(400).json({ error: 'Email is required' });
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: 'A valid email is required' });
   }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedSessionId = sessionId
+    ? normalizeSessionId(sessionId, req.ip)
+    : null;
+  const normalizedSource = typeof source === 'string' ? source.slice(0, 64) : 'usage-limit';
   
   try {
     let alreadyExists = false;
@@ -924,7 +1004,7 @@ app.post('/subscribe', async (req, res) => {
         `INSERT OR IGNORE INTO subscriptions(email, session_id, source) 
          VALUES (?, ?, ?)`
       );
-      const result = stmt.run(email, sessionId || null, source);
+      const result = stmt.run(normalizedEmail, normalizedSessionId, normalizedSource);
       
       // Check if email already existed in SQLite
       if (result.changes === 0) {
@@ -940,19 +1020,19 @@ app.post('/subscribe', async (req, res) => {
       try {
         // Try to insert into MongoDB
         const result = await subscribersCollection.updateOne(
-          { email },
+          { email: normalizedEmail },
           { 
             $set: { 
-              email,
-              session_id: sessionId || null,
-              source,
+              email: normalizedEmail,
+              session_id: normalizedSessionId,
+              source: normalizedSource,
               created_at: new Date() 
             } 
           },
           { upsert: true }
         );
         
-        console.log(`MongoDB: Email ${email} stored/updated`);
+        console.log(`MongoDB: Email ${normalizedEmail} stored/updated`);
       } catch (mongoErr) {
         console.error('MongoDB error in /subscribe:', mongoErr);
         // We already tried SQLite, so just log the error and continue
@@ -981,6 +1061,12 @@ app.post('/subscribe', async (req, res) => {
 
 // JWT verification middleware for admin routes
 const verifyAdminJWT = (req, res, next) => {
+  if (!ADMIN_AUTH_ENABLED) {
+    return res.status(503).json({
+      error: 'Admin auth is disabled. Set JWT_SECRET and ADMIN_PASSWORD to enable it.'
+    });
+  }
+
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -1071,13 +1157,13 @@ app.get('/admin/export-subscribers', verifyAdminJWT, async (req, res) => {
     
     // Add each subscriber to CSV
     subscribers.forEach(s => {
-      // Clean up values to avoid CSV issues (basic escaping)
-      const email = s.email ? s.email.replace(/"/g, '""') : '';
+      // Escape to prevent CSV injection in spreadsheet tools.
+      const email = s.email || '';
       const sessionId = s.session_id || s.sessionId || '';
       const subSource = s.source || '';
       const createdAt = s.created_at || '';
       
-      csv += `"${email}","${sessionId}","${subSource}","${createdAt}"\n`;
+      csv += `${escapeCsvField(email)},${escapeCsvField(sessionId)},${escapeCsvField(subSource)},${escapeCsvField(createdAt)}\n`;
     });
     
     // Set headers for file download
@@ -1101,7 +1187,9 @@ connectToMongoDB().catch(err => {
 
 app.listen(port, () => {
   console.log(`MarketMirror API running on port ${port}`);
-  console.log(`API key configured: ${process.env.OPENAI_API_KEY ? 'Yes' : 'No'}`);
+  console.log(`API key configured: ${API_KEY ? 'Yes' : 'No'}`);
+  console.log(`Admin auth: ${ADMIN_AUTH_ENABLED ? 'enabled' : 'disabled (set JWT_SECRET and ADMIN_PASSWORD)'}`);
+  console.log(`Allowed CORS origins: ${Array.from(ALLOWED_ORIGINS).join(', ') || 'none'}`);
   console.log(`Caching: ${ENABLE_CACHING ? 'enabled' : 'disabled'}`);
   console.log(`Mock API mode: ${MOCK_API_CALLS ? 'enabled' : 'disabled'}`);
   console.log(`MongoDB: ${subscribersCollection ? 'connected' : 'not connected (using SQLite only)'}`);
