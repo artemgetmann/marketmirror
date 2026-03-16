@@ -29,12 +29,21 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const ADMIN_AUTH_ENABLED = Boolean(JWT_SECRET && ADMIN_PASSWORD);
+// Safe defaults keep production and local clients functional even when
+// ALLOWED_ORIGINS is not explicitly configured in the deployment environment.
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'https://trymarketmirror.com',
+  'https://www.trymarketmirror.com'
+];
+// Merge env-defined origins with defaults and dedupe via Set.
 const ALLOWED_ORIGINS = new Set(
   (process.env.ALLOWED_ORIGINS || '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean)
-    .concat(['http://localhost:3000', 'http://localhost:8080'])
+    .concat(DEFAULT_ALLOWED_ORIGINS)
 );
 const TICKER_REGEX = /^[A-Z][A-Z0-9.-]{0,9}$/;
 const SESSION_ID_REGEX = /^[a-zA-Z0-9_-]{8,128}$/;
@@ -219,6 +228,7 @@ app.use(cors({
     // Allow requests with no origin (curl/server-to-server).
     if (!origin) return callback(null, true);
 
+    // Strict allowlist: only known origins pass.
     if (ALLOWED_ORIGINS.has(origin)) {
       return callback(null, true);
     }

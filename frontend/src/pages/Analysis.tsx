@@ -140,7 +140,11 @@ const fetchAnalysis = async (
     }
     
     // Standard rate limit error without accessible analyses
-    throw new Error(errorData.error || "You've reached your daily limit");
+    throw {
+      isRateLimited: true,
+      status: 429,
+      message: errorData.error || "You've reached your daily limit",
+    };
   }
 
   // For other error responses
@@ -247,10 +251,7 @@ const Analysis = () => {
           if (err.accessibleAnalyses?.includes(ticker)) {
             return await fetchAnalysis(ticker);
           }
-        } else if (
-          getErrorStatus(err) === 429 ||
-          getErrorMessage(err, "").toLowerCase().includes("limit")
-        ) {
+        } else if (getErrorStatus(err) === 429) {
           // Generic rate limit error (for backward compatibility)
           setRateLimitInfo({
             resetTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
@@ -258,14 +259,13 @@ const Analysis = () => {
           });
           setShowEmailModal(true);
         } else {
-          // For other errors, show error toast and the email modal
+          // For other errors, show an error toast only
           toast({
             title: "Error Fetching Analysis",
             description: getErrorMessage(err, "An error occurred"),
             variant: "destructive",
           });
           setRateLimitInfo(null);
-          setShowEmailModal(true);
         }
         
         throw err;

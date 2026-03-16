@@ -25,7 +25,7 @@ Core config:
 - `MONGODB_URI` (optional, SQLite fallback is used when unavailable)
 - `ENABLE_CACHING=true|false` (default `true`)
 - `MOCK_API_CALLS=true|false` (default `false`)
-- `ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080`
+- `ALLOWED_ORIGINS=https://trymarketmirror.com,https://www.trymarketmirror.com,http://localhost:3000,http://localhost:8080` (recommended for production + local admin/testing)
 
 Admin config (required to enable admin endpoints + rate-limit bypass):
 
