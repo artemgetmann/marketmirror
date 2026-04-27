@@ -25,24 +25,60 @@ debug "Fetching data from Edgar..."
 # Fetch the page
 URL="https://finviz.com/quote.ashx?t=${TICKER}&p=d"
 raw=$(curl -s -A 'Mozilla/5.0' "$URL")
+raw_file=$(mktemp)
+trap 'rm -f "$raw_file"' EXIT
+printf '%s' "$raw" > "$raw_file"
 
-# Extract metrics
-pe=$(sed -nE 's/.*>P\/E<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
-ps=$(sed -nE 's/.*>P\/S<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
-peg=$(sed -nE 's/.*>PEG<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
-pfcf=$(sed -nE 's/.*>P\/FCF<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
-pb=$(sed -nE 's/.*>P\/B<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
-roe=$(sed -En 's/.*>ROE<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' <<<"$raw")
-roa=$(sed -nE 's/.*>ROA<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' <<<"$raw")
-pm=$(sed -nE 's/.*>Profit Margin<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' <<<"$raw")
-sales=$(sed -nE 's/.*>Sales past 5Y<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' <<<"$raw")
-cr=$(sed -nE 's/.*>Current Ratio<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
-de=$(sed -nE 's/.*>Debt\/Eq<\/td>[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?)<.*/\1/p' <<<"$raw")
-insider=$(sed -nE 's/.*>Insider Own<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?%).*/\1/p' <<<"$raw")
-div_ttm=$(sed -nE '/Dividend TTM/ s/.*<b>([^<]+)<\/b>.*/\1/p' <<<"$raw")
-mcap=$(sed -En 's/.*>Market Cap<\/td><td[^>]*>[^0-9]*([0-9]+(\.[0-9]+)?[BM]).*/\1/p' <<<"$raw")
-option_short=$(sed -nE '/Option\/Short/ s/.*<b>([^<]+)<\/b>.*/\1/p' <<<"$raw")
-insider_trans=$(sed -nE 's/.*>Insider Trans<\/td>[^>]*>[^-0-9]*(-?[0-9]+(\.[0-9]+)?%).*/\1/p' <<<"$raw")
+get_finviz_value() {
+    python3 - "$raw_file" "$1" <<'PY'
+import html
+import re
+import sys
+
+raw_path, target_label = sys.argv[1:3]
+raw = open(raw_path, encoding='utf-8', errors='ignore').read()
+pairs = re.findall(r'<div class="snapshot-td-label">(.*?)</div>\s*</td>\s*<td[^>]*>\s*<div class="snapshot-td-content">(.*?)</div>', raw, re.S)
+values = {}
+for label_html, value_html in pairs:
+    label = re.sub(r'<[^>]+>', '', html.unescape(label_html))
+    value = re.sub(r'<[^>]+>', '', html.unescape(value_html))
+    label = ' '.join(label.split())
+    value = ' '.join(value.split())
+    values[label] = value
+print(values.get(target_label, ''), end='')
+PY
+}
+
+extract_sales_growth_5y() {
+    local value
+    value=$(get_finviz_value "Sales past 5Y")
+    if [[ -z "$value" ]]; then
+        value=$(get_finviz_value "Sales past 3/5Y")
+        if [[ -n "$value" ]]; then
+            grep -Eo -- '-?[0-9]+(\.[0-9]+)?%' <<<"$value" | tail -n1
+            return 0
+        fi
+    fi
+    printf '%s' "$value"
+}
+
+# Extract metrics from current Finviz snapshot markup
+pe=$(get_finviz_value "P/E")
+ps=$(get_finviz_value "P/S")
+peg=$(get_finviz_value "PEG")
+pfcf=$(get_finviz_value "P/FCF")
+pb=$(get_finviz_value "P/B")
+roe=$(get_finviz_value "ROE")
+roa=$(get_finviz_value "ROA")
+pm=$(get_finviz_value "Profit Margin")
+sales=$(extract_sales_growth_5y)
+cr=$(get_finviz_value "Current Ratio")
+de=$(get_finviz_value "Debt/Eq")
+insider=$(get_finviz_value "Insider Own")
+div_ttm=$(get_finviz_value "Dividend TTM")
+mcap=$(get_finviz_value "Market Cap")
+option_short=$(get_finviz_value "Option/Short")
+insider_trans=$(get_finviz_value "Insider Trans")
 
 debug "Data retrieved successfully!"
 
