@@ -22,14 +22,31 @@ TICKER=$1
 debug "Analyzing $TICKER..."
 debug "Fetching data from Edgar..."
 
-# Fetch the page
-URL="https://finviz.com/quote.ashx?t=${TICKER}&p=d"
-raw=$(curl -s -A 'Mozilla/5.0' "$URL")
-raw_file=$(mktemp)
-trap 'rm -f "$raw_file"' EXIT
-printf '%s' "$raw" > "$raw_file"
+# Fetch Finviz pages. The quote page has the richest labels, but Render/Finviz
+# sometimes returns markup that breaks quote-page scraping. The screener views
+# expose the key ratios in simpler tables, so use them as a resilient fallback.
+QUOTE_URL="https://finviz.com/quote.ashx?t=${TICKER}&p=d"
+SCREENER_VALUATION_URL="https://finviz.com/screener.ashx?v=121&t=${TICKER}"
+SCREENER_OWNERSHIP_URL="https://finviz.com/screener.ashx?v=131&t=${TICKER}"
+SCREENER_PROFITABILITY_URL="https://finviz.com/screener.ashx?v=161&t=${TICKER}"
+USER_AGENT='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
 
-get_finviz_value() {
+raw=$(curl -sL --compressed -A "$USER_AGENT" "$QUOTE_URL")
+valuation_raw=$(curl -sL --compressed -A "$USER_AGENT" "$SCREENER_VALUATION_URL")
+ownership_raw=$(curl -sL --compressed -A "$USER_AGENT" "$SCREENER_OWNERSHIP_URL")
+profitability_raw=$(curl -sL --compressed -A "$USER_AGENT" "$SCREENER_PROFITABILITY_URL")
+
+raw_file=$(mktemp)
+valuation_file=$(mktemp)
+ownership_file=$(mktemp)
+profitability_file=$(mktemp)
+trap 'rm -f "$raw_file" "$valuation_file" "$ownership_file" "$profitability_file"' EXIT
+printf '%s' "$raw" > "$raw_file"
+printf '%s' "$valuation_raw" > "$valuation_file"
+printf '%s' "$ownership_raw" > "$ownership_file"
+printf '%s' "$profitability_raw" > "$profitability_file"
+
+get_quote_value() {
     python3 - "$raw_file" "$1" <<'PY'
 import html
 import re
@@ -49,36 +66,77 @@ print(values.get(target_label, ''), end='')
 PY
 }
 
+get_screener_value() {
+    python3 - "$1" "$2" <<'PY'
+import html
+import re
+import sys
+
+raw_path, target_label = sys.argv[1:3]
+raw = open(raw_path, encoding='utf-8', errors='ignore').read()
+headers = [
+    ' '.join(re.sub(r'<[^>]+>', '', html.unescape(h)).split())
+    for h in re.findall(r'<th[^>]*>(.*?)</th>', raw, re.S)
+]
+rows = re.findall(r'<tr class="styled-row.*?</tr>', raw, re.S)
+if not headers or not rows or target_label not in headers:
+    print('', end='')
+    raise SystemExit
+cells = [
+    ' '.join(re.sub(r'<[^>]+>', '', html.unescape(c)).split())
+    for c in re.findall(r'<td[^>]*>(.*?)</td>', rows[0], re.S)
+]
+idx = headers.index(target_label)
+print(cells[idx] if idx < len(cells) else '', end='')
+PY
+}
+
+first_nonempty() {
+    local value
+    for value in "$@"; do
+        if [[ -n "$value" && "$value" != "-" ]]; then
+            printf '%s' "$value"
+            return 0
+        fi
+    done
+}
+
 extract_sales_growth_5y() {
     local value
-    value=$(get_finviz_value "Sales past 5Y")
+    value=$(get_quote_value "Sales past 5Y")
     if [[ -z "$value" ]]; then
-        value=$(get_finviz_value "Sales past 3/5Y")
+        value=$(get_quote_value "Sales past 3/5Y")
         if [[ -n "$value" ]]; then
             grep -Eo -- '-?[0-9]+(\.[0-9]+)?%' <<<"$value" | tail -n1
             return 0
         fi
     fi
+    if [[ -z "$value" ]]; then
+        value=$(get_screener_value "$valuation_file" "Sales Past 5Y")
+    fi
     printf '%s' "$value"
 }
 
-# Extract metrics from current Finviz snapshot markup
-pe=$(get_finviz_value "P/E")
-ps=$(get_finviz_value "P/S")
-peg=$(get_finviz_value "PEG")
-pfcf=$(get_finviz_value "P/FCF")
-pb=$(get_finviz_value "P/B")
-roe=$(get_finviz_value "ROE")
-roa=$(get_finviz_value "ROA")
-pm=$(get_finviz_value "Profit Margin")
+# Extract metrics. Prefer the quote page when available, then fall back to
+# Finviz screener tables, which are simpler and currently more deployment-safe.
+pe=$(first_nonempty "$(get_quote_value "P/E")" "$(get_screener_value "$valuation_file" "P/E")")
+ps=$(first_nonempty "$(get_quote_value "P/S")" "$(get_screener_value "$valuation_file" "P/S")")
+peg=$(first_nonempty "$(get_quote_value "PEG")" "$(get_screener_value "$valuation_file" "PEG")")
+pfcf=$(first_nonempty "$(get_quote_value "P/FCF")" "$(get_screener_value "$valuation_file" "P/FCF")")
+pb=$(first_nonempty "$(get_quote_value "P/B")" "$(get_screener_value "$valuation_file" "P/B")")
+roe=$(first_nonempty "$(get_quote_value "ROE")" "$(get_screener_value "$profitability_file" "ROE")")
+roa=$(first_nonempty "$(get_quote_value "ROA")" "$(get_screener_value "$profitability_file" "ROA")")
+pm=$(first_nonempty "$(get_quote_value "Profit Margin")" "$(get_screener_value "$profitability_file" "Profit M")")
 sales=$(extract_sales_growth_5y)
-cr=$(get_finviz_value "Current Ratio")
-de=$(get_finviz_value "Debt/Eq")
-insider=$(get_finviz_value "Insider Own")
-div_ttm=$(get_finviz_value "Dividend TTM")
-mcap=$(get_finviz_value "Market Cap")
-option_short=$(get_finviz_value "Option/Short")
-insider_trans=$(get_finviz_value "Insider Trans")
+cr=$(first_nonempty "$(get_quote_value "Current Ratio")" "$(get_screener_value "$profitability_file" "Curr R")")
+de=$(first_nonempty "$(get_quote_value "Debt/Eq")" "$(get_screener_value "$profitability_file" "Debt/Eq")")
+insider=$(first_nonempty "$(get_quote_value "Insider Own")" "$(get_screener_value "$ownership_file" "Insider Own")")
+insider_trans=$(first_nonempty "$(get_quote_value "Insider Trans")" "$(get_screener_value "$ownership_file" "Insider Trans")")
+div_ttm=$(first_nonempty "$(get_quote_value "Dividend TTM")" "$(get_screener_value "$profitability_file" "Dividend")")
+mcap=$(first_nonempty "$(get_quote_value "Market Cap")" "$(get_screener_value "$valuation_file" "Market Cap")")
+option_short=$(get_quote_value "Option/Short")
+
+debug "Extracted Finviz metrics: P/E=${pe:-N/A}, P/S=${ps:-N/A}, PEG=${peg:-N/A}, P/FCF=${pfcf:-N/A}, P/B=${pb:-N/A}, ROE=${roe:-N/A}, ROA=${roa:-N/A}, ProfitMargin=${pm:-N/A}, Sales5Y=${sales:-N/A}, CurrentRatio=${cr:-N/A}, DebtEq=${de:-N/A}, InsiderOwn=${insider:-N/A}, InsiderTrans=${insider_trans:-N/A}, Dividend=${div_ttm:-N/A}, MarketCap=${mcap:-N/A}, OptionShort=${option_short:-N/A}"
 
 debug "Data retrieved successfully!"
 
